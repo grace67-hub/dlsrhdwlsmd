@@ -47,6 +47,17 @@ export default {
           DEFAULT: "hsl(var(--card))",
           foreground: "hsl(var(--card-foreground))",
         },
+        chat: {
+          user: {
+            DEFAULT: "hsl(var(--chat-user-bg))",
+            foreground: "hsl(var(--chat-user-fg))",
+          },
+          assistant: {
+            DEFAULT: "hsl(var(--chat-assistant-bg))",
+            foreground: "hsl(var(--chat-assistant-fg))",
+          },
+          input: "hsl(var(--chat-input-bg))",
+        },
         sidebar: {
           DEFAULT: "hsl(var(--sidebar-background))",
           foreground: "hsl(var(--sidebar-foreground))",
@@ -57,6 +68,9 @@ export default {
           border: "hsl(var(--sidebar-border))",
           ring: "hsl(var(--sidebar-ring))",
         },
+      },
+      fontFamily: {
+        sans: ['Inter', 'system-ui', 'sans-serif'],
       },
       borderRadius: {
         lg: "var(--radius)",
