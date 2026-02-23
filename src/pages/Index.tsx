@@ -1,13 +1,15 @@
 import { useRef, useEffect } from 'react';
-import { MessageSquare } from 'lucide-react';
+import { MessageSquare, Code, Sparkles } from 'lucide-react';
 import { ChatHeader } from '@/components/ChatHeader';
 import { ChatMessage } from '@/components/ChatMessage';
 import { ChatInput } from '@/components/ChatInput';
 import { TypingIndicator } from '@/components/TypingIndicator';
 import { useChat } from '@/hooks/useChat';
+import type { ChatMode } from '@/hooks/useChat';
+import { cn } from '@/lib/utils';
 
 const Index = () => {
-  const { messages, isLoading, sendMessage, clearMessages } = useChat();
+  const { messages, isLoading, sendMessage, clearMessages, mode, setMode } = useChat();
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -27,7 +29,7 @@ const Index = () => {
             <p className="text-xs text-muted-foreground">Powered by AI</p>
           </div>
         </div>
-        <div className="flex-1 p-3">
+        <div className="flex-1 p-3 space-y-1">
           <button
             onClick={clearMessages}
             className="w-full flex items-center gap-2 px-3 py-2.5 rounded-lg text-sm text-foreground hover:bg-secondary transition-colors"
@@ -35,15 +37,34 @@ const Index = () => {
             <MessageSquare className="w-4 h-4" />
             새 대화
           </button>
+          <div className="mt-4 px-1">
+            <p className="text-xs text-muted-foreground mb-2 font-medium">AI 모드</p>
+            {([
+              { id: 'general' as ChatMode, label: '일반 대화', icon: Sparkles },
+              { id: 'programming' as ChatMode, label: '프로그래밍', icon: Code },
+            ]).map(({ id, label, icon: Icon }) => (
+              <button
+                key={id}
+                onClick={() => setMode(id)}
+                className={cn(
+                  'w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-colors mb-1',
+                  mode === id ? 'bg-primary/10 text-primary font-medium' : 'text-foreground hover:bg-secondary'
+                )}
+              >
+                <Icon className="w-4 h-4" />
+                {label}
+              </button>
+            ))}
+          </div>
         </div>
         <div className="p-3 border-t border-border">
-          <p className="text-xs text-muted-foreground text-center">v1.0 · Gemini 기반</p>
+          <p className="text-xs text-muted-foreground text-center">v1.1 · {mode === 'programming' ? '코딩 모드' : '일반 모드'}</p>
         </div>
       </aside>
 
       {/* Main Chat Area */}
       <div className="flex-1 flex flex-col min-w-0">
-        <ChatHeader onClear={clearMessages} hasMessages={messages.length > 0} />
+        <ChatHeader onClear={clearMessages} hasMessages={messages.length > 0} mode={mode} onModeChange={setMode} />
 
         <main className="flex-1 overflow-y-auto p-4 lg:p-6 space-y-4">
           {messages.length === 0 ? (
@@ -59,7 +80,10 @@ const Index = () => {
                 코딩, 번역, 글쓰기 등 다양한 도움을 드릴 수 있어요.
               </p>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-8 max-w-lg w-full">
-                {["💡 아이디어 브레인스토밍", "📝 글쓰기 도움", "💻 코딩 질문", "🌐 번역 요청"].map((suggestion) => (
+                {(mode === 'programming'
+                  ? ["💻 React 컴포넌트 만들기", "🐛 버그 디버깅 도움", "📦 API 연동 방법", "⚡ 코드 최적화"]
+                  : ["💡 아이디어 브레인스토밍", "📝 글쓰기 도움", "💻 코딩 질문", "🌐 번역 요청"]
+                ).map((suggestion) => (
                   <button
                     key={suggestion}
                     onClick={() => sendMessage(suggestion.slice(2).trim())}

@@ -9,9 +9,12 @@ export interface Message {
 
 const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/chat`;
 
+export type ChatMode = 'general' | 'programming';
+
 export function useChat() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [mode, setMode] = useState<ChatMode>('general');
 
   const sendMessage = useCallback(async (content: string) => {
     if (!content.trim() || isLoading) return;
@@ -49,6 +52,7 @@ export function useChat() {
         },
         body: JSON.stringify({
           messages: [...messages, userMessage].map(m => ({ role: m.role, content: m.content })),
+          mode,
         }),
       });
 
@@ -122,11 +126,11 @@ export function useChat() {
     } finally {
       setIsLoading(false);
     }
-  }, [messages, isLoading]);
+  }, [messages, isLoading, mode]);
 
   const clearMessages = useCallback(() => {
     setMessages([]);
   }, []);
 
-  return { messages, isLoading, sendMessage, clearMessages };
+  return { messages, isLoading, sendMessage, clearMessages, mode, setMode };
 }
