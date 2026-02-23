@@ -25,11 +25,11 @@ serve(async (req) => {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "google/gemini-3-flash-preview",
+        model: "google/gemini-2.5-pro",
         messages: [
           { 
             role: "system", 
-            content: "당신은 친절하고 도움이 되는 AI 어시스턴트입니다. 한국어로 대화하며, 명확하고 간결하게 답변합니다. 코드 예시가 필요할 때는 마크다운 코드 블록을 사용하세요." 
+            content: "당신은 친절하고 도움이 되는 AI 어시스턴트입니다. 한국어로 대화하며, 최신 정보를 바탕으로 정확하고 상세하게 답변합니다. 복잡한 질문에도 깊이 있는 분석과 추론을 제공하세요. 코드 예시가 필요할 때는 마크다운 코드 블록을 사용하세요." 
           },
           ...messages,
         ],
