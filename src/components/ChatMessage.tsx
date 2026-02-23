@@ -1,4 +1,4 @@
-import { Bot, User } from 'lucide-react';
+import { MessageCircle, User } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { Message } from '@/hooks/useChat';
 import ReactMarkdown from 'react-markdown';
@@ -26,7 +26,7 @@ export function ChatMessage({ message }: ChatMessageProps) {
         {isUser ? (
           <User className="w-4 h-4 text-chat-user-foreground" />
         ) : (
-          <Bot className="w-4 h-4 text-secondary-foreground" />
+          <MessageCircle className="w-4 h-4 text-secondary-foreground" />
         )}
       </div>
 
