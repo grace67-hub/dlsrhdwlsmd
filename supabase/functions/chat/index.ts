@@ -15,7 +15,7 @@ serve(async (req) => {
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     
     if (!LOVABLE_API_KEY) {
-      throw new Error("LOVABLE_API_KEY is not configured");
+      throw new Error("서비스 설정이 완료되지 않았습니다");
     }
 
     const systemPrompts: Record<string, string> = {
@@ -75,9 +75,9 @@ serve(async (req) => {
         );
       }
       const errorText = await response.text();
-      console.error("AI gateway error:", response.status, errorText);
+      console.error("Gateway error:", response.status, errorText);
       return new Response(
-        JSON.stringify({ error: "AI 서비스 오류가 발생했습니다." }), 
+        JSON.stringify({ error: "서비스 오류가 발생했습니다." }), 
         {
           status: 500,
           headers: { ...corsHeaders, "Content-Type": "application/json" },

@@ -25,8 +25,8 @@ const Index = () => {
             <MessageSquare className="w-5 h-5 text-primary-foreground" />
           </div>
           <div>
-            <h1 className="font-semibold text-foreground text-sm">AI 어시스턴트</h1>
-            <p className="text-xs text-muted-foreground">Powered by AI</p>
+            <h1 className="font-semibold text-foreground text-sm">채팅</h1>
+            <p className="text-xs text-muted-foreground">무엇이든 물어보세요</p>
           </div>
         </div>
         <div className="flex-1 p-3 space-y-1">
@@ -38,7 +38,7 @@ const Index = () => {
             새 대화
           </button>
           <div className="mt-4 px-1">
-            <p className="text-xs text-muted-foreground mb-2 font-medium">AI 모드</p>
+            <p className="text-xs text-muted-foreground mb-2 font-medium">모드</p>
             {([
               { id: 'general' as ChatMode, label: '일반 대화', icon: Sparkles },
               { id: 'programming' as ChatMode, label: '프로그래밍', icon: Code },
@@ -58,7 +58,7 @@ const Index = () => {
           </div>
         </div>
         <div className="p-3 border-t border-border">
-          <p className="text-xs text-muted-foreground text-center">v1.1 · {mode === 'programming' ? '코딩 모드' : '일반 모드'}</p>
+          <p className="text-xs text-muted-foreground text-center">{mode === 'programming' ? '코딩' : '일반'}</p>
         </div>
       </aside>
 
@@ -73,11 +73,10 @@ const Index = () => {
                 <MessageSquare className="w-10 h-10 text-primary-foreground" />
               </div>
               <h2 className="text-2xl font-semibold text-foreground mb-3">
-                안녕하세요! 👋
+                무엇이 궁금하세요? 👋
               </h2>
               <p className="text-muted-foreground max-w-md text-base">
-                궁금한 것이 있으시면 무엇이든 물어보세요. 
-                코딩, 번역, 글쓰기 등 다양한 도움을 드릴 수 있어요.
+                편하게 물어보세요.
               </p>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-8 max-w-lg w-full">
                 {(mode === 'programming'
