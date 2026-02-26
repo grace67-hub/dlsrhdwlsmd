@@ -1,6 +1,20 @@
 import { useRef, useEffect, useState, KeyboardEvent } from 'react';
 import { useChat } from '@/hooks/useChat';
 
+const linkify = (text: string) => {
+  const urlRegex = /(https?:\/\/[^\s]+)/g;
+  const parts = text.split(urlRegex);
+  return parts.map((part, i) =>
+    urlRegex.test(part) ? (
+      <a key={i} href={part} target="_blank" rel="noopener noreferrer" style={{ color: '#6af', textDecoration: 'underline' }}>
+        {part}
+      </a>
+    ) : (
+      <span key={i}>{part}</span>
+    )
+  );
+};
+
 const Index = () => {
   const { messages, isLoading, sendMessage, clearMessages } = useChat();
   const [input, setInput] = useState('');
@@ -47,7 +61,7 @@ const Index = () => {
       {messages.map((msg, i) => (
         <div key={msg.id} style={{ whiteSpace: 'pre-wrap' }}>
           {msg.role === 'user' && i > 0 && <div style={{ height: '16px' }} />}
-          <div>{msg.content}</div>
+          <div>{linkify(msg.content)}</div>
           {msg.role === 'user' && <div style={{ height: '4px' }} />}
         </div>
       ))}
