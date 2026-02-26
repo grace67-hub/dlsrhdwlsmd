@@ -2,7 +2,7 @@ import { useRef, useEffect, useState, KeyboardEvent } from 'react';
 import { useChat } from '@/hooks/useChat';
 
 const Index = () => {
-  const { messages, isLoading, sendMessage } = useChat();
+  const { messages, isLoading, sendMessage, clearMessages } = useChat();
   const [input, setInput] = useState('');
   const bottomRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -10,6 +10,17 @@ const Index = () => {
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, isLoading]);
+
+  useEffect(() => {
+    const handleGlobal = (e: globalThis.KeyboardEvent) => {
+      if (e.ctrlKey && e.key === 'd') {
+        e.preventDefault();
+        clearMessages();
+      }
+    };
+    window.addEventListener('keydown', handleGlobal);
+    return () => window.removeEventListener('keydown', handleGlobal);
+  }, [clearMessages]);
 
   const handleKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter' && input.trim() && !isLoading) {
@@ -33,27 +44,19 @@ const Index = () => {
         cursor: 'text',
       }}
     >
-      {messages.map((msg) => (
-        <div key={msg.id} style={{ whiteSpace: 'pre-wrap', marginBottom: '12px' }}>
-          {msg.role === 'user' ? (
-            <>
-              <div style={{ color: '#666' }}>사용자:</div>
-              <div>{msg.content}</div>
-              <div style={{ color: '#666' }}>---</div>
-            </>
-          ) : (
-            <>
-              <div style={{ color: '#666' }}>:</div>
-              <div>{msg.content}</div>
-            </>
-          )}
+      {messages.map((msg, i) => (
+        <div key={msg.id} style={{ whiteSpace: 'pre-wrap' }}>
+          {msg.role === 'user' && i > 0 && <div style={{ height: '16px' }} />}
+          <div>{msg.content}</div>
+          {msg.role === 'user' && <div style={{ height: '4px' }} />}
         </div>
       ))}
 
       {isLoading && messages[messages.length - 1]?.role === 'user' && (
-        <div style={{ color: '#555' }}>: ...</div>
+        <div style={{ color: '#555' }}>...</div>
       )}
 
+      <div style={{ height: '16px' }} />
       <input
         ref={inputRef}
         value={input}
