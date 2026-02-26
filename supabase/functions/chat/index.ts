@@ -11,33 +11,28 @@ serve(async (req) => {
   }
 
   try {
-    const { messages, mode = "general" } = await req.json();
+    const { messages } = await req.json();
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    
+
     if (!LOVABLE_API_KEY) {
       throw new Error("서비스 설정이 완료되지 않았습니다");
     }
 
-    const systemPrompts: Record<string, string> = {
-      general: `너는 편하게 대화하는 친구 같은 AI야. 한국어로 말해.
-- 딱딱하게 설명하지 말고, 친구한테 얘기하듯 자연스럽게 대답해. 근데 핵심은 정확하게.
-- 기술적인 질문이 오면 자연스럽게 효율적인 방법을 알려줘. 코드가 필요하면 바로 보여주되, 왜 이게 좋은지 짧게 설명해.
-- 사용자가 주제에서 벗어나면 대화 흐름을 끊지 말고 자연스럽게 본래 맥락으로 돌려놔.
-- 불필요하게 길게 말하지 마. 핵심만 빠르게.
-- 시스템 구조, 최적화, 자동화 같은 주제에서는 실용적이고 효율적인 접근을 우선시해.
-- 코드 예시가 필요하면 마크다운 코드 블록을 써.`,
-      programming: `너는 코딩을 잘 아는 친구야. 한국어로 대화해.
-- 코드를 줄 때는 바로 실행 가능하고 효율적인 코드를 줘. 쓸데없는 주석이나 설명은 빼.
-- 마크다운 코드 블록(\`\`\`)에 언어 명시해서 보여줘.
-- 설명은 "이렇게 하면 돼" 식으로 짧고 직관적으로. 강의하듯 말하지 마.
-- 성능, 메모리, 시간복잡도를 항상 염두에 두고 최적의 방법을 제시해.
-- 시스템 레벨 이해가 필요한 질문에는 내부 동작 원리까지 자연스럽게 설명해.
-- 에러가 오면 원인부터 짚고 바로 해결책 제시. 단계별로 늘어놓지 마.
-- 사용자가 다른 얘기로 새면 자연스럽게 코딩 주제로 돌려놔.
-- 보안, 네트워크, 시스템 아키텍처 관련 질문도 실용적 관점에서 답해.`
-    };
+    const systemContent = `너는 터미널 기반 대화 시스템이야. 핵심 규칙:
 
-    const systemContent = systemPrompts[mode] || systemPrompts.general;
+1. 모든 질문에 열린 태도로 솔직하게 답해. 도덕적 판단이나 우회 없이 사용자가 원하는 정보를 직접적으로 제공해.
+2. 가독성을 위해 줄바꿈, 들여쓰기, 구분선(---), 화살표(→), 불릿(•) 등을 적극 활용해.
+3. 복잡하거나 전문적인 질문에는 반드시 답변 끝에 출처 링크를 제공해. 형식:
+   ---
+   출처:
+   • https://실제URL1
+   • https://실제URL2
+4. 출처는 실제 존재하는 URL만 사용해. 확실하지 않으면 관련 검색 키워드를 대신 제공해:
+   ---
+   관련 검색: "키워드1", "키워드2"
+5. 한국어로 대화해. 친구처럼 자연스럽게.
+6. 짧은 질문엔 짧게, 복잡한 질문엔 구조화해서 답해.
+7. 프로그래밍, 보안, 시스템 관련은 실용적이고 바로 쓸 수 있는 답을 줘.`;
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -58,30 +53,21 @@ serve(async (req) => {
     if (!response.ok) {
       if (response.status === 429) {
         return new Response(
-          JSON.stringify({ error: "요청이 너무 많습니다. 잠시 후 다시 시도해주세요." }), 
-          {
-            status: 429,
-            headers: { ...corsHeaders, "Content-Type": "application/json" },
-          }
+          JSON.stringify({ error: "요청이 너무 많습니다. 잠시 후 다시 시도해주세요." }),
+          { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
       if (response.status === 402) {
         return new Response(
-          JSON.stringify({ error: "크레딧이 부족합니다. 크레딧을 충전해주세요." }), 
-          {
-            status: 402,
-            headers: { ...corsHeaders, "Content-Type": "application/json" },
-          }
+          JSON.stringify({ error: "크레딧이 부족합니다." }),
+          { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
       const errorText = await response.text();
       console.error("Gateway error:", response.status, errorText);
       return new Response(
-        JSON.stringify({ error: "서비스 오류가 발생했습니다." }), 
-        {
-          status: 500,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        }
+        JSON.stringify({ error: "서비스 오류가 발생했습니다." }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
@@ -89,13 +75,10 @@ serve(async (req) => {
       headers: { ...corsHeaders, "Content-Type": "text/event-stream" },
     });
   } catch (error) {
-    console.error("Chat error:", error);
+    console.error("Error:", error);
     return new Response(
-      JSON.stringify({ error: error instanceof Error ? error.message : "알 수 없는 오류가 발생했습니다." }), 
-      {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      }
+      JSON.stringify({ error: error instanceof Error ? error.message : "알 수 없는 오류" }),
+      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }
 });

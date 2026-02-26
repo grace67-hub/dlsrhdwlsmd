@@ -9,12 +9,9 @@ export interface Message {
 
 const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/chat`;
 
-export type ChatMode = 'general' | 'programming';
-
 export function useChat() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState(false);
-  const [mode, setMode] = useState<ChatMode>('general');
 
   const sendMessage = useCallback(async (content: string) => {
     if (!content.trim() || isLoading) return;
@@ -35,7 +32,7 @@ export function useChat() {
       setMessages(prev => {
         const last = prev[prev.length - 1];
         if (last?.role === 'assistant') {
-          return prev.map((m, i) => 
+          return prev.map((m, i) =>
             i === prev.length - 1 ? { ...m, content: assistantContent } : m
           );
         }
@@ -52,7 +49,6 @@ export function useChat() {
         },
         body: JSON.stringify({
           messages: [...messages, userMessage].map(m => ({ role: m.role, content: m.content })),
-          mode,
         }),
       });
 
@@ -98,7 +94,6 @@ export function useChat() {
         }
       }
 
-      // Final flush
       if (textBuffer.trim()) {
         for (let raw of textBuffer.split('\n')) {
           if (!raw) continue;
@@ -118,19 +113,18 @@ export function useChat() {
       console.error('Chat error:', error);
       toast({
         variant: 'destructive',
-        title: '오류 발생',
+        title: '오류',
         description: error instanceof Error ? error.message : '메시지를 보내지 못했습니다.',
       });
-      // Remove the failed user message
       setMessages(prev => prev.filter(m => m.id !== userMessage.id));
     } finally {
       setIsLoading(false);
     }
-  }, [messages, isLoading, mode]);
+  }, [messages, isLoading]);
 
   const clearMessages = useCallback(() => {
     setMessages([]);
   }, []);
 
-  return { messages, isLoading, sendMessage, clearMessages, mode, setMode };
+  return { messages, isLoading, sendMessage, clearMessages };
 }
