@@ -1,82 +1,59 @@
 import { useRef, useEffect, useState, KeyboardEvent } from 'react';
 import { useChat } from '@/hooks/useChat';
 
-interface TerminalLine {
-  type: 'input' | 'output' | 'system';
-  content: string;
-}
-
 const Index = () => {
   const { messages, isLoading, sendMessage } = useChat();
   const [input, setInput] = useState('');
-  const terminalRef = useRef<HTMLDivElement>(null);
+  const bottomRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    terminalRef.current?.scrollTo(0, terminalRef.current.scrollHeight);
+    bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, isLoading]);
 
-  const handleSubmit = () => {
-    if (input.trim() && !isLoading) {
+  const handleKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter' && input.trim() && !isLoading) {
       sendMessage(input.trim());
       setInput('');
     }
   };
 
-  const handleKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter') {
-      e.preventDefault();
-      handleSubmit();
-    }
-  };
-
-  const focusInput = () => {
-    inputRef.current?.focus();
-  };
-
   return (
     <div
-      className="h-screen w-screen bg-black text-green-400 font-mono text-sm flex flex-col cursor-text"
-      onClick={focusInput}
+      className="h-screen w-screen bg-black overflow-y-auto p-6"
+      onClick={() => inputRef.current?.focus()}
+      style={{ fontFamily: 'monospace', fontSize: '14px', lineHeight: '1.8' }}
     >
-      <div ref={terminalRef} className="flex-1 overflow-y-auto p-4 space-y-1">
-        <div className="text-neutral-500 mb-4">session started. type anything.</div>
-
-        {messages.map((msg) => (
-          <div key={msg.id} className="whitespace-pre-wrap">
-            {msg.role === 'user' ? (
-              <div>
-                <span className="text-neutral-500">&gt; </span>
-                <span className="text-neutral-200">{msg.content}</span>
-              </div>
-            ) : (
-              <div className="mt-1 mb-3">
-                <span className="text-green-500">ai: </span>
-                <span className="text-neutral-300 leading-relaxed">{msg.content}</span>
-              </div>
-            )}
-          </div>
-        ))}
-
-        {isLoading && messages[messages.length - 1]?.role === 'user' && (
-          <div className="text-green-500 animate-pulse">ai: ...</div>
-        )}
-
-        {/* Input line */}
-        <div className="flex items-center">
-          <span className="text-neutral-500">&gt; </span>
-          <input
-            ref={inputRef}
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            onKeyDown={handleKeyDown}
-            className="flex-1 bg-transparent text-neutral-200 outline-none caret-green-400 font-mono text-sm"
-            autoFocus
-            disabled={isLoading}
-            spellCheck={false}
-          />
+      {messages.map((msg) => (
+        <div key={msg.id} className="mb-4 whitespace-pre-wrap">
+          {msg.role === 'user' ? (
+            <span style={{ color: '#888' }}>{msg.content}</span>
+          ) : (
+            <div style={{ color: '#ccc' }}>
+              <span style={{ color: '#555' }}>→ </span>
+              {msg.content}
+            </div>
+          )}
         </div>
-      </div>
+      ))}
+
+      {isLoading && messages[messages.length - 1]?.role === 'user' && (
+        <div style={{ color: '#555' }} className="mb-4 animate-pulse">→ ...</div>
+      )}
+
+      <input
+        ref={inputRef}
+        value={input}
+        onChange={(e) => setInput(e.target.value)}
+        onKeyDown={handleKeyDown}
+        disabled={isLoading}
+        autoFocus
+        spellCheck={false}
+        placeholder=""
+        className="bg-transparent outline-none border-none w-full"
+        style={{ color: '#888', caretColor: '#666', fontFamily: 'monospace', fontSize: '14px' }}
+      />
+      <div ref={bottomRef} />
     </div>
   );
 };
