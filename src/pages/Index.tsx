@@ -24,8 +24,8 @@ const Index = () => {
       style={{
         minHeight: '100vh',
         width: '100%',
-        background: '#fff',
-        color: '#000',
+        background: '#000',
+        color: '#ccc',
         fontFamily: 'monospace',
         fontSize: '14px',
         lineHeight: '1.6',
@@ -34,15 +34,24 @@ const Index = () => {
       }}
     >
       {messages.map((msg) => (
-        <div key={msg.id} style={{ whiteSpace: 'pre-wrap', marginBottom: '8px' }}>
-          {msg.role === 'user'
-            ? msg.content
-            : msg.content}
+        <div key={msg.id} style={{ whiteSpace: 'pre-wrap', marginBottom: '12px' }}>
+          {msg.role === 'user' ? (
+            <>
+              <div style={{ color: '#666' }}>사용자:</div>
+              <div>{msg.content}</div>
+              <div style={{ color: '#666' }}>---</div>
+            </>
+          ) : (
+            <>
+              <div style={{ color: '#666' }}>:</div>
+              <div>{msg.content}</div>
+            </>
+          )}
         </div>
       ))}
 
       {isLoading && messages[messages.length - 1]?.role === 'user' && (
-        <div style={{ color: '#999' }}>...</div>
+        <div style={{ color: '#555' }}>: ...</div>
       )}
 
       <input
@@ -59,10 +68,11 @@ const Index = () => {
           outline: 'none',
           fontFamily: 'monospace',
           fontSize: '14px',
-          color: '#000',
+          color: '#ccc',
           width: '100%',
           padding: 0,
           margin: 0,
+          caretColor: '#666',
         }}
       />
       <div ref={bottomRef} />
