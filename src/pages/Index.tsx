@@ -20,25 +20,29 @@ const Index = () => {
 
   return (
     <div
-      className="h-screen w-screen bg-black overflow-y-auto p-6"
       onClick={() => inputRef.current?.focus()}
-      style={{ fontFamily: 'monospace', fontSize: '14px', lineHeight: '1.8' }}
+      style={{
+        minHeight: '100vh',
+        width: '100%',
+        background: '#fff',
+        color: '#000',
+        fontFamily: 'monospace',
+        fontSize: '14px',
+        lineHeight: '1.6',
+        padding: '10px',
+        cursor: 'text',
+      }}
     >
       {messages.map((msg) => (
-        <div key={msg.id} className="mb-4 whitespace-pre-wrap">
-          {msg.role === 'user' ? (
-            <span style={{ color: '#888' }}>{msg.content}</span>
-          ) : (
-            <div style={{ color: '#ccc' }}>
-              <span style={{ color: '#555' }}>→ </span>
-              {msg.content}
-            </div>
-          )}
+        <div key={msg.id} style={{ whiteSpace: 'pre-wrap', marginBottom: '8px' }}>
+          {msg.role === 'user'
+            ? msg.content
+            : msg.content}
         </div>
       ))}
 
       {isLoading && messages[messages.length - 1]?.role === 'user' && (
-        <div style={{ color: '#555' }} className="mb-4 animate-pulse">→ ...</div>
+        <div style={{ color: '#999' }}>...</div>
       )}
 
       <input
@@ -49,9 +53,17 @@ const Index = () => {
         disabled={isLoading}
         autoFocus
         spellCheck={false}
-        placeholder=""
-        className="bg-transparent outline-none border-none w-full"
-        style={{ color: '#888', caretColor: '#666', fontFamily: 'monospace', fontSize: '14px' }}
+        style={{
+          background: 'transparent',
+          border: 'none',
+          outline: 'none',
+          fontFamily: 'monospace',
+          fontSize: '14px',
+          color: '#000',
+          width: '100%',
+          padding: 0,
+          margin: 0,
+        }}
       />
       <div ref={bottomRef} />
     </div>
