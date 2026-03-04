@@ -17,11 +17,11 @@ const linkify = (text: string) => {
   );
 };
 
-type CommandMode = null | 'login_email' | 'login_password' | 'signup_email' | 'signup_password';
+type InputMode = null | 'login_id' | 'login_pw' | 'signup_id' | 'signup_pw' | 'open' | 'delete';
 
 const Index = () => {
   const { messages, isLoading, sendMessage, clearMessages, setMessages } = useChat();
-  const { user, loading: authLoading, login, signup, logout } = useAuth();
+  const { user, username, loading: authLoading, login, signup, logout } = useAuth();
   const {
     conversations,
     currentConversationId,
@@ -35,8 +35,9 @@ const Index = () => {
 
   const [input, setInput] = useState('');
   const [systemLines, setSystemLines] = useState<string[]>([]);
-  const [commandMode, setCommandMode] = useState<CommandMode>(null);
-  const [tempEmail, setTempEmail] = useState('');
+  const [inputMode, setInputMode] = useState<InputMode>(null);
+  const [tempId, setTempId] = useState('');
+  const [showHelp, setShowHelp] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -44,143 +45,174 @@ const Index = () => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, isLoading, systemLines]);
 
-  // Load conversations on login
   useEffect(() => {
     if (user) {
       loadConversations();
-      addSystem('로그인됨: ' + user.email);
+      addSystem('로그인됨: ' + (username || ''));
     }
-  }, [user]);
+  }, [user, username]);
 
   const addSystem = (text: string) => {
     setSystemLines(prev => [...prev, text]);
     setTimeout(() => setSystemLines(prev => prev.filter(l => l !== text)), 5000);
   };
 
-  const handleCommand = async (cmd: string) => {
-    // Handle command modes (login/signup flow)
-    if (commandMode === 'login_email') {
-      setTempEmail(cmd);
-      setCommandMode('login_password');
-      addSystem('비밀번호:');
-      return;
-    }
-    if (commandMode === 'login_password') {
-      setCommandMode(null);
-      try {
-        await login(tempEmail, cmd);
-      } catch (e: any) {
-        addSystem('로그인 실패: ' + (e.message || '오류'));
-      }
-      return;
-    }
-    if (commandMode === 'signup_email') {
-      setTempEmail(cmd);
-      setCommandMode('signup_password');
-      addSystem('비밀번호:');
-      return;
-    }
-    if (commandMode === 'signup_password') {
-      setCommandMode(null);
-      try {
-        await signup(tempEmail, cmd);
-        addSystem('가입 완료. 이메일을 확인해주세요.');
-      } catch (e: any) {
-        addSystem('가입 실패: ' + (e.message || '오류'));
-      }
-      return;
-    }
+  // Global keyboard shortcuts
+  useEffect(() => {
+    const handler = (e: globalThis.KeyboardEvent) => {
+      if (inputMode) return; // Don't intercept during input mode
 
-    // Slash commands
-    if (cmd.startsWith('/')) {
-      const parts = cmd.split(' ');
-      const command = parts[0].toLowerCase();
-
-      switch (command) {
-        case '/login':
-          if (user) { addSystem('이미 로그인됨'); return; }
-          setCommandMode('login_email');
-          addSystem('이메일:');
-          return;
-        case '/signup':
-          if (user) { addSystem('이미 로그인됨'); return; }
-          setCommandMode('signup_email');
-          addSystem('이메일:');
-          return;
-        case '/logout':
-          if (!user) { addSystem('로그인 안됨'); return; }
-          await logout();
-          clearMessages();
-          setCurrentConversationId(null);
-          addSystem('로그아웃됨');
-          return;
-        case '/new':
-          if (!user) { addSystem('로그인 필요 (/login)'); return; }
-          clearMessages();
-          const newId = await createConversation();
-          if (newId) addSystem('새 대화 시작');
-          return;
-        case '/list':
-          if (!user) { addSystem('로그인 필요 (/login)'); return; }
-          const list = await loadConversations();
-          if (list.length === 0) { addSystem('대화 없음'); return; }
-          list.forEach((c, i) => addSystem(`${i + 1}. ${c.title}`));
-          return;
-        case '/open': {
-          if (!user) { addSystem('로그인 필요 (/login)'); return; }
-          const idx = parseInt(parts[1]) - 1;
-          if (isNaN(idx) || idx < 0 || idx >= conversations.length) {
-            addSystem('번호를 입력하세요: /open [번호]');
+      if (e.ctrlKey || e.metaKey) {
+        switch (e.key.toLowerCase()) {
+          case 'l': // Login
+            e.preventDefault();
+            if (user) { addSystem('이미 로그인됨'); return; }
+            setInputMode('login_id');
+            addSystem('아이디:');
             return;
-          }
-          const conv = conversations[idx];
-          const msgs = await loadMessages(conv.id);
-          setMessages(msgs.map(m => ({ id: m.id, role: m.role as 'user' | 'assistant', content: m.content })));
-          addSystem(`"${conv.title}" 열림`);
+          case 'r': // Register (signup)
+            e.preventDefault();
+            if (user) { addSystem('이미 로그인됨'); return; }
+            setInputMode('signup_id');
+            addSystem('아이디:');
+            return;
+          case 'q': // Logout
+            e.preventDefault();
+            if (!user) { addSystem('로그인 안됨'); return; }
+            logout().then(() => {
+              clearMessages();
+              setCurrentConversationId(null);
+              addSystem('로그아웃됨');
+            });
+            return;
+          case 'n': // New conversation
+            e.preventDefault();
+            if (!user) { addSystem('로그인 필요 (Ctrl+L)'); return; }
+            clearMessages();
+            createConversation().then(id => {
+              if (id) addSystem('새 대화 시작');
+            });
+            return;
+          case 'o': // Open conversation
+            e.preventDefault();
+            if (!user) { addSystem('로그인 필요 (Ctrl+L)'); return; }
+            loadConversations().then(list => {
+              if (list.length === 0) { addSystem('대화 없음'); return; }
+              list.forEach((c, i) => addSystem(`${i + 1}. ${c.title}`));
+              setInputMode('open');
+              addSystem('번호 입력:');
+            });
+            return;
+          case 'd': // Delete conversation
+            e.preventDefault();
+            if (!user) { addSystem('로그인 필요 (Ctrl+L)'); return; }
+            loadConversations().then(list => {
+              if (list.length === 0) { addSystem('대화 없음'); return; }
+              list.forEach((c, i) => addSystem(`${i + 1}. ${c.title}`));
+              setInputMode('delete');
+              addSystem('삭제할 번호:');
+            });
+            return;
+          case 'k': // Clear screen
+            e.preventDefault();
+            clearMessages();
+            addSystem('화면 지움');
+            return;
+          case 'h': // Help
+            e.preventDefault();
+            setShowHelp(prev => !prev);
+            return;
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [user, inputMode, conversations, username]);
+
+  const handleModeInput = async (val: string) => {
+    switch (inputMode) {
+      case 'login_id':
+        setTempId(val);
+        setInputMode('login_pw');
+        addSystem('비밀번호:');
+        return;
+      case 'login_pw':
+        setInputMode(null);
+        try {
+          await login(tempId, val);
+        } catch (e: any) {
+          addSystem('로그인 실패: ' + (e.message || '오류'));
+        }
+        return;
+      case 'signup_id':
+        setTempId(val);
+        setInputMode('signup_pw');
+        addSystem('비밀번호:');
+        return;
+      case 'signup_pw':
+        setInputMode(null);
+        try {
+          await signup(tempId, val);
+          addSystem('가입 완료');
+        } catch (e: any) {
+          addSystem('가입 실패: ' + (e.message || '오류'));
+        }
+        return;
+      case 'open': {
+        setInputMode(null);
+        const idx = parseInt(val) - 1;
+        if (isNaN(idx) || idx < 0 || idx >= conversations.length) {
+          addSystem('잘못된 번호');
           return;
         }
-        case '/delete': {
-          if (!user) { addSystem('로그인 필요 (/login)'); return; }
-          const delIdx = parseInt(parts[1]) - 1;
-          if (isNaN(delIdx) || delIdx < 0 || delIdx >= conversations.length) {
-            addSystem('번호를 입력하세요: /delete [번호]');
-            return;
-          }
-          await deleteConversation(conversations[delIdx].id);
-          clearMessages();
-          addSystem('대화 삭제됨');
+        const conv = conversations[idx];
+        const msgs = await loadMessages(conv.id);
+        setMessages(msgs.map(m => ({ id: m.id, role: m.role as 'user' | 'assistant', content: m.content })));
+        addSystem(`"${conv.title}" 열림`);
+        return;
+      }
+      case 'delete': {
+        setInputMode(null);
+        const idx = parseInt(val) - 1;
+        if (isNaN(idx) || idx < 0 || idx >= conversations.length) {
+          addSystem('잘못된 번호');
           return;
         }
-        case '/clear':
-          clearMessages();
-          addSystem('화면 지움');
-          return;
-        case '/help':
-          addSystem('/login - 로그인');
-          addSystem('/signup - 회원가입');
-          addSystem('/logout - 로그아웃');
-          addSystem('/new - 새 대화');
-          addSystem('/list - 대화 목록');
-          addSystem('/open [번호] - 대화 열기');
-          addSystem('/delete [번호] - 대화 삭제');
-          addSystem('/clear - 화면 지우기');
-          return;
-        default:
-          addSystem('알 수 없는 명령어. /help 입력');
-          return;
-      }
-    }
-
-    // Normal message - ensure conversation exists for logged in users
-    if (user && !currentConversationId) {
-      const cId = await createConversation(cmd.slice(0, 50));
-      if (cId) {
-        await sendMessageWithSave(cmd, cId);
+        await deleteConversation(conversations[idx].id);
+        clearMessages();
+        addSystem('대화 삭제됨');
         return;
       }
     }
+  };
 
-    await sendMessageWithSave(cmd, currentConversationId);
+  const handleKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Escape' && inputMode) {
+      setInputMode(null);
+      setInput('');
+      addSystem('취소됨');
+      return;
+    }
+
+    if (e.key === 'Enter' && input.trim() && !isLoading) {
+      const val = input.trim();
+      setInput('');
+
+      if (inputMode) {
+        handleModeInput(val);
+        return;
+      }
+
+      // Normal message
+      if (user && !currentConversationId) {
+        createConversation(val.slice(0, 50)).then(cId => {
+          if (cId) sendMessageWithSave(val, cId);
+        });
+        return;
+      }
+      sendMessageWithSave(val, currentConversationId);
+    }
   };
 
   const sendMessageWithSave = async (content: string, convId: string | null) => {
@@ -194,16 +226,7 @@ const Index = () => {
     });
   };
 
-  const handleKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter' && input.trim() && !isLoading) {
-      const val = input.trim();
-      setInput('');
-      handleCommand(val);
-    }
-  };
-
   const handleContainerClick = (e: React.MouseEvent) => {
-    // Only focus input if no text is selected
     const selection = window.getSelection();
     if (!selection || selection.isCollapsed) {
       inputRef.current?.focus();
@@ -211,6 +234,8 @@ const Index = () => {
   };
 
   if (authLoading) return null;
+
+  const isPasswordMode = inputMode === 'login_pw' || inputMode === 'signup_pw';
 
   return (
     <div
@@ -229,6 +254,13 @@ const Index = () => {
         WebkitUserSelect: 'text',
       }}
     >
+      {showHelp && (
+        <div style={{ color: '#666', marginBottom: '16px', borderBottom: '1px solid #222', paddingBottom: '8px' }}>
+          <div>Ctrl+L 로그인 | Ctrl+R 회원가입 | Ctrl+Q 로그아웃</div>
+          <div>Ctrl+N 새 대화 | Ctrl+O 대화 열기 | Ctrl+D 대화 삭제</div>
+          <div>Ctrl+K 화면 지우기 | Ctrl+H 도움말 토글 | Esc 취소</div>
+        </div>
+      )}
 
       {messages.map((msg, i) => (
         <div key={msg.id} style={{ whiteSpace: 'pre-wrap' }}>
@@ -248,52 +280,36 @@ const Index = () => {
 
       <div style={{ height: '16px' }} />
       <div style={{ display: 'flex', alignItems: 'center' }}>
-        {commandMode === 'login_password' || commandMode === 'signup_password' ? (
-          <input
-            ref={inputRef}
-            type="password"
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            onKeyDown={handleKeyDown}
-            disabled={isLoading}
-            autoFocus
-            spellCheck={false}
-            style={{
-              background: 'transparent',
-              border: 'none',
-              outline: 'none',
-              fontFamily: 'monospace',
-              fontSize: '14px',
-              color: '#ccc',
-              width: '100%',
-              padding: 0,
-              margin: 0,
-              caretColor: '#666',
-            }}
-          />
-        ) : (
-          <input
-            ref={inputRef}
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            onKeyDown={handleKeyDown}
-            disabled={isLoading}
-            autoFocus
-            spellCheck={false}
-            style={{
-              background: 'transparent',
-              border: 'none',
-              outline: 'none',
-              fontFamily: 'monospace',
-              fontSize: '14px',
-              color: '#ccc',
-              width: '100%',
-              padding: 0,
-              margin: 0,
-              caretColor: '#666',
-            }}
-          />
-        )}
+        {inputMode && <span style={{ color: '#555', marginRight: '4px' }}>{
+          inputMode === 'login_id' ? '[아이디]' :
+          inputMode === 'login_pw' ? '[비밀번호]' :
+          inputMode === 'signup_id' ? '[아이디]' :
+          inputMode === 'signup_pw' ? '[비밀번호]' :
+          inputMode === 'open' ? '[번호]' :
+          '[번호]'
+        }</span>}
+        <input
+          ref={inputRef}
+          type={isPasswordMode ? 'password' : 'text'}
+          value={input}
+          onChange={(e) => setInput(e.target.value)}
+          onKeyDown={handleKeyDown}
+          disabled={isLoading}
+          autoFocus
+          spellCheck={false}
+          style={{
+            background: 'transparent',
+            border: 'none',
+            outline: 'none',
+            fontFamily: 'monospace',
+            fontSize: '14px',
+            color: '#ccc',
+            width: '100%',
+            padding: 0,
+            margin: 0,
+            caretColor: '#666',
+          }}
+        />
       </div>
       <div ref={bottomRef} />
     </div>
