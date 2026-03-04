@@ -229,11 +229,6 @@ const Index = () => {
         WebkitUserSelect: 'text',
       }}
     >
-      {!user && messages.length === 0 && (
-        <div style={{ color: '#555', marginBottom: '16px' }}>
-          /login 또는 /signup 으로 로그인하세요. /help 로 명령어 확인.
-        </div>
-      )}
 
       {messages.map((msg, i) => (
         <div key={msg.id} style={{ whiteSpace: 'pre-wrap' }}>
