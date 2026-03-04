@@ -13,7 +13,7 @@ export function useChat() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
-  const sendMessage = useCallback(async (content: string) => {
+  const sendMessage = useCallback(async (content: string, onComplete?: (assistantContent: string) => Promise<void>) => {
     if (!content.trim() || isLoading) return;
 
     const userMessage: Message = {
@@ -109,6 +109,10 @@ export function useChat() {
           } catch { /* ignore */ }
         }
       }
+
+      if (onComplete && assistantContent) {
+        await onComplete(assistantContent);
+      }
     } catch (error) {
       console.error('Chat error:', error);
       toast({
@@ -126,5 +130,5 @@ export function useChat() {
     setMessages([]);
   }, []);
 
-  return { messages, isLoading, sendMessage, clearMessages };
+  return { messages, isLoading, sendMessage, clearMessages, setMessages };
 }
