@@ -233,7 +233,6 @@ const Index = () => {
 
   return (
     <div
-      onClick={handleContainerClick}
       style={{
         minHeight: '100vh',
         width: '100%',
