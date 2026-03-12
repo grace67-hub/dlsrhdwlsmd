@@ -45,10 +45,16 @@ const Index = () => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, isLoading, systemLines]);
 
+  const hasShownLogin = useRef(false);
   useEffect(() => {
     if (user) {
       loadConversations();
-      addSystem('로그인됨: ' + (username || ''));
+      if (!hasShownLogin.current) {
+        hasShownLogin.current = true;
+        addSystem('로그인됨: ' + (username || ''));
+      }
+    } else {
+      hasShownLogin.current = false;
     }
   }, [user, username]);
 
@@ -226,12 +232,6 @@ const Index = () => {
     });
   };
 
-  const handleContainerClick = (e: React.MouseEvent) => {
-    const selection = window.getSelection();
-    if (!selection || selection.isCollapsed) {
-      inputRef.current?.focus();
-    }
-  };
 
   if (authLoading) return null;
 
@@ -239,7 +239,6 @@ const Index = () => {
 
   return (
     <div
-      onClick={handleContainerClick}
       style={{
         minHeight: '100vh',
         width: '100%',
@@ -249,7 +248,6 @@ const Index = () => {
         fontSize: '14px',
         lineHeight: '1.6',
         padding: '10px',
-        cursor: 'text',
         userSelect: 'text',
         WebkitUserSelect: 'text',
       }}
@@ -264,9 +262,10 @@ const Index = () => {
 
       {messages.map((msg, i) => (
         <div key={msg.id} style={{ whiteSpace: 'pre-wrap' }}>
-          {msg.role === 'user' && i > 0 && <div style={{ height: '16px' }} />}
-          <div>{linkify(msg.content)}</div>
-          {msg.role === 'user' && <div style={{ height: '4px' }} />}
+          {msg.role === 'user' && i > 0 && <div style={{ height: '24px', borderTop: '1px solid #222', marginBottom: '12px' }} />}
+          {msg.role === 'user' && <span style={{ color: '#555' }}>&gt; </span>}
+          <div style={{ display: 'inline' }}>{linkify(msg.content)}</div>
+          {msg.role === 'user' && <div style={{ height: '8px' }} />}
         </div>
       ))}
 
