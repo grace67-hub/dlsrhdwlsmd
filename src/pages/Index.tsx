@@ -45,10 +45,16 @@ const Index = () => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, isLoading, systemLines]);
 
+  const hasShownLogin = useRef(false);
   useEffect(() => {
     if (user) {
       loadConversations();
-      addSystem('로그인됨: ' + (username || ''));
+      if (!hasShownLogin.current) {
+        hasShownLogin.current = true;
+        addSystem('로그인됨: ' + (username || ''));
+      }
+    } else {
+      hasShownLogin.current = false;
     }
   }, [user, username]);
 
