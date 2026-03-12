@@ -256,9 +256,10 @@ const Index = () => {
 
       {messages.map((msg, i) => (
         <div key={msg.id} style={{ whiteSpace: 'pre-wrap' }}>
-          {msg.role === 'user' && i > 0 && <div style={{ height: '16px' }} />}
-          <div>{linkify(msg.content)}</div>
-          {msg.role === 'user' && <div style={{ height: '4px' }} />}
+          {msg.role === 'user' && i > 0 && <div style={{ height: '24px', borderTop: '1px solid #222', marginBottom: '12px' }} />}
+          {msg.role === 'user' && <span style={{ color: '#555' }}>&gt; </span>}
+          <div style={{ display: 'inline' }}>{linkify(msg.content)}</div>
+          {msg.role === 'user' && <div style={{ height: '8px' }} />}
         </div>
       ))}
 
