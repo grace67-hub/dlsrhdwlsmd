@@ -226,12 +226,6 @@ const Index = () => {
     });
   };
 
-  const handleContainerClick = (e: React.MouseEvent) => {
-    const selection = window.getSelection();
-    if (!selection || selection.isCollapsed) {
-      inputRef.current?.focus();
-    }
-  };
 
   if (authLoading) return null;
 
