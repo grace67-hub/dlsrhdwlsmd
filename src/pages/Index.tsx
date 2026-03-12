@@ -242,7 +242,6 @@ const Index = () => {
         fontSize: '14px',
         lineHeight: '1.6',
         padding: '10px',
-        cursor: 'text',
         userSelect: 'text',
         WebkitUserSelect: 'text',
       }}
