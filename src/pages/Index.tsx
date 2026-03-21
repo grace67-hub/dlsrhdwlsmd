@@ -46,15 +46,21 @@ const Index = () => {
   }, [messages, isLoading, systemLines]);
 
   const hasShownLogin = useRef(false);
+  const prevUserId = useRef<string | null>(null);
   useEffect(() => {
     if (user) {
       loadConversations();
-      if (!hasShownLogin.current) {
-        hasShownLogin.current = true;
-        addSystem('로그인됨: ' + (username || ''));
+      // Only show login message on actual new login (user id changed)
+      if (prevUserId.current !== user.id && username) {
+        if (!hasShownLogin.current) {
+          hasShownLogin.current = true;
+          addSystem('로그인됨: ' + username);
+        }
       }
+      prevUserId.current = user.id;
     } else {
       hasShownLogin.current = false;
+      prevUserId.current = null;
     }
   }, [user, username]);
 
@@ -262,10 +268,11 @@ const Index = () => {
 
       {messages.map((msg, i) => (
         <div key={msg.id} style={{ whiteSpace: 'pre-wrap' }}>
-          {msg.role === 'user' && i > 0 && <div style={{ height: '24px', borderTop: '1px solid #222', marginBottom: '12px' }} />}
+          {msg.role === 'user' && i > 0 && <div style={{ height: '32px', borderTop: '1px solid #222', marginBottom: '16px' }} />}
           {msg.role === 'user' && <span style={{ color: '#555' }}>&gt; </span>}
           <div style={{ display: 'inline' }}>{linkify(msg.content)}</div>
-          {msg.role === 'user' && <div style={{ height: '8px' }} />}
+          {msg.role === 'user' && <div style={{ height: '12px' }} />}
+          {msg.role === 'assistant' && <div style={{ height: '20px' }} />}
         </div>
       ))}
 
