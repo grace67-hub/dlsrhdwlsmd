@@ -46,15 +46,21 @@ const Index = () => {
   }, [messages, isLoading, systemLines]);
 
   const hasShownLogin = useRef(false);
+  const prevUserId = useRef<string | null>(null);
   useEffect(() => {
     if (user) {
       loadConversations();
-      if (!hasShownLogin.current) {
-        hasShownLogin.current = true;
-        addSystem('로그인됨: ' + (username || ''));
+      // Only show login message on actual new login (user id changed)
+      if (prevUserId.current !== user.id && username) {
+        if (!hasShownLogin.current) {
+          hasShownLogin.current = true;
+          addSystem('로그인됨: ' + username);
+        }
       }
+      prevUserId.current = user.id;
     } else {
       hasShownLogin.current = false;
+      prevUserId.current = null;
     }
   }, [user, username]);
 
