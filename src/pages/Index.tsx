@@ -220,22 +220,25 @@ const Index = () => {
   return (
     <div style={{
       minHeight: '100vh', width: '100%', background: colors.bg, color: colors.text,
-      fontFamily: 'monospace', fontSize: '14px', lineHeight: '1.7', padding: '10px',
-      userSelect: 'text', WebkitUserSelect: 'text', position: 'relative',
+      fontFamily: "'JetBrains Mono', 'Fira Code', monospace", fontSize: '13.5px', lineHeight: '1.8',
+      padding: '20px 16px', userSelect: 'text', WebkitUserSelect: 'text', position: 'relative',
     }}>
       {/* Settings */}
-      <div ref={menuRef} style={{ position: 'fixed', top: '12px', right: '16px', zIndex: 100 }}>
+      <div ref={menuRef} style={{ position: 'fixed', top: '16px', right: '20px', zIndex: 100 }}>
         <button onClick={() => setShowMenu(p => !p)} style={{
-          background: 'transparent', border: `1px solid ${colors.border}`, color: colors.dim,
-          fontFamily: 'monospace', fontSize: '16px', cursor: 'pointer',
-          padding: '4px 8px', borderRadius: '4px', lineHeight: 1,
+          background: isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.04)',
+          border: `1px solid ${colors.border}`, color: colors.dim,
+          fontFamily: 'inherit', fontSize: '14px', cursor: 'pointer',
+          padding: '6px 10px', borderRadius: '8px', lineHeight: 1,
+          transition: 'all 0.2s', backdropFilter: 'blur(8px)',
         }} title="설정">⚙</button>
 
         {showMenu && (
           <div style={{
-            position: 'absolute', top: '36px', right: 0, background: colors.menuBg,
-            border: `1px solid ${colors.menuBorder}`, borderRadius: '6px', minWidth: '160px',
-            overflow: 'hidden', boxShadow: isDark ? '0 4px 16px rgba(0,0,0,0.5)' : '0 4px 16px rgba(0,0,0,0.1)',
+            position: 'absolute', top: '40px', right: 0, background: colors.menuBg,
+            border: `1px solid ${colors.menuBorder}`, borderRadius: '10px', minWidth: '170px',
+            overflow: 'hidden', boxShadow: isDark ? '0 8px 32px rgba(0,0,0,0.6)' : '0 8px 32px rgba(0,0,0,0.08)',
+            backdropFilter: 'blur(12px)',
           }}>
             {!user ? (
               <>
@@ -250,7 +253,7 @@ const Index = () => {
               </>
             ) : (
               <>
-                <div style={{ ...menuItemStyle, color: colors.dim, cursor: 'default', fontSize: '12px' }}>{username}</div>
+                <div style={{ ...menuItemStyle, color: colors.accent, cursor: 'default', fontSize: '12px', fontWeight: 600 }}>● {username}</div>
                 <div style={menuItemStyle}
                   onMouseEnter={e => (e.currentTarget.style.background = colors.menuHover)}
                   onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
@@ -294,29 +297,35 @@ const Index = () => {
       </div>
 
       {showHelp && (
-        <div style={{ color: colors.dimmer, marginBottom: '16px', borderBottom: `1px solid ${colors.border}`, paddingBottom: '8px' }}>
-          <div>Ctrl+L 로그인 | Ctrl+R 회원가입 | Ctrl+Q 로그아웃</div>
-          <div>Ctrl+N 새 대화 | Ctrl+O 대화 열기 | Ctrl+D 대화 삭제</div>
-          <div>Ctrl+K 화면 지우기 | Ctrl+H 도움말 | Esc 취소</div>
+        <div style={{ color: colors.dimmer, marginBottom: '20px', borderBottom: `1px solid ${colors.border}`, paddingBottom: '10px', fontSize: '12px' }}>
+          <div>Ctrl+L 로그인 · Ctrl+R 회원가입 · Ctrl+Q 로그아웃</div>
+          <div>Ctrl+N 새 대화 · Ctrl+O 대화 열기 · Ctrl+D 대화 삭제</div>
+          <div>Ctrl+K 화면 지우기 · Ctrl+H 도움말 · Esc 취소</div>
         </div>
       )}
 
       {messages.map((msg, i) => (
         <div key={msg.id}>
-          {/* Separator between Q&A pairs */}
           {msg.role === 'user' && i > 0 && (
-            <div style={{ height: '40px', borderTop: `1px solid ${colors.border}`, marginBottom: '20px' }} />
+            <div style={{
+              height: '1px',
+              background: `linear-gradient(90deg, transparent, ${colors.border}, transparent)`,
+              margin: '32px 0 28px',
+            }} />
           )}
 
           {msg.role === 'user' && (
-            <div style={{ whiteSpace: 'pre-wrap', marginBottom: '16px' }}>
-              <span style={{ color: colors.dim }}>&gt; </span>
+            <div style={{ whiteSpace: 'pre-wrap', marginBottom: '20px' }}>
+              <span style={{ color: colors.userPrefix, fontWeight: 600 }}>❯ </span>
               {renderContent(msg.content, colors.link)}
             </div>
           )}
 
           {msg.role === 'assistant' && (
-            <div style={{ whiteSpace: 'pre-wrap', marginBottom: '24px', paddingLeft: '8px' }}>
+            <div style={{
+              whiteSpace: 'pre-wrap', marginBottom: '28px', paddingLeft: '12px',
+              borderLeft: `2px solid ${colors.border}`,
+            }}>
               {renderAssistantContent(msg.content)}
             </div>
           )}
@@ -324,31 +333,46 @@ const Index = () => {
       ))}
 
       {isLoading && messages[messages.length - 1]?.role === 'user' && (
-        <div style={{ color: colors.dim, paddingLeft: '8px' }}>...</div>
+        <div style={{
+          color: colors.accent, paddingLeft: '12px', marginBottom: '8px',
+          animation: 'pulse 1.5s ease-in-out infinite',
+        }}>
+          <span style={{ letterSpacing: '3px' }}>···</span>
+        </div>
       )}
 
       {systemLines.map((line, i) => (
-        <div key={i} style={{ color: colors.system, whiteSpace: 'pre-wrap' }}>{line}</div>
+        <div key={i} style={{
+          color: colors.system, whiteSpace: 'pre-wrap', fontSize: '12px',
+          padding: '2px 8px', borderRadius: '4px',
+          background: isDark ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.03)',
+          marginBottom: '4px', display: 'inline-block',
+        }}>{line}</div>
       ))}
 
-      <div style={{ height: '16px' }} />
-      <div style={{ display: 'flex', alignItems: 'center' }}>
-        {inputMode && <span style={{ color: colors.dim, marginRight: '4px' }}>{
+      <div style={{ height: '20px' }} />
+      <div style={{
+        display: 'flex', alignItems: 'center',
+        borderTop: `1px solid ${colors.border}`, paddingTop: '12px',
+      }}>
+        {inputMode && <span style={{ color: colors.accent, marginRight: '6px', fontSize: '12px', fontWeight: 600 }}>{
           inputMode === 'login_id' || inputMode === 'signup_id' ? '[아이디]' :
           inputMode === 'login_pw' || inputMode === 'signup_pw' ? '[비밀번호]' :
           inputMode === 'open' ? '[번호]' : '[번호]'
         }</span>}
+        <span style={{ color: colors.userPrefix, marginRight: '4px' }}>❯</span>
         <input ref={inputRef} type={isPasswordMode ? 'password' : 'text'}
           value={input} onChange={e => setInput(e.target.value)} onKeyDown={handleKeyDown}
           disabled={isLoading} autoFocus spellCheck={false}
           style={{
             background: 'transparent', border: 'none', outline: 'none',
-            fontFamily: 'monospace', fontSize: '14px', color: colors.text,
-            width: '100%', padding: 0, margin: 0, caretColor: colors.dim,
+            fontFamily: 'inherit', fontSize: '13.5px', color: colors.text,
+            width: '100%', padding: 0, margin: 0, caretColor: colors.accent,
           }}
         />
       </div>
       <div ref={bottomRef} />
+      <style>{`@keyframes pulse { 0%,100% { opacity: 0.4; } 50% { opacity: 1; } }`}</style>
     </div>
   );
 };
