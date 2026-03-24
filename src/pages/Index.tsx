@@ -50,17 +50,19 @@ const Index = () => {
 
   const isDark = theme === 'dark';
   const colors = useMemo(() => ({
-    bg: isDark ? '#000' : '#f5f5f5',
-    text: isDark ? '#ccc' : '#333',
-    dim: isDark ? '#555' : '#999',
-    dimmer: isDark ? '#666' : '#aaa',
-    border: isDark ? '#222' : '#ddd',
-    system: isDark ? '#888' : '#666',
-    link: isDark ? '#6af' : '#07c',
-    menuBg: isDark ? '#111' : '#fff',
-    menuHover: isDark ? '#222' : '#eee',
-    menuBorder: isDark ? '#333' : '#ccc',
-    sourceBg: isDark ? '#0a0a0a' : '#f0f0f0',
+    bg: isDark ? '#0a0a0f' : '#fafafa',
+    text: isDark ? '#d4d4d8' : '#333',
+    dim: isDark ? '#52525b' : '#999',
+    dimmer: isDark ? '#71717a' : '#aaa',
+    border: isDark ? '#1e1e2a' : '#e4e4e7',
+    system: isDark ? '#a1a1aa' : '#666',
+    link: isDark ? '#60a5fa' : '#2563eb',
+    menuBg: isDark ? '#111118' : '#fff',
+    menuHover: isDark ? '#1a1a24' : '#f4f4f5',
+    menuBorder: isDark ? '#27273a' : '#d4d4d8',
+    sourceBg: isDark ? '#0d0d14' : '#f0f0f0',
+    accent: isDark ? '#818cf8' : '#6366f1',
+    userPrefix: isDark ? '#a78bfa' : '#7c3aed',
   }), [isDark]);
 
   useEffect(() => {
