@@ -316,28 +316,43 @@ const Index = () => {
 
           {msg.role === 'user' && (
             <div style={{ whiteSpace: 'pre-wrap', marginBottom: '20px' }}>
-              <span style={{ color: colors.userPrefix, fontWeight: 600 }}>❯ </span>
               {renderContent(msg.content, colors.link)}
             </div>
           )}
 
           {msg.role === 'assistant' && (
-            <div style={{
-              whiteSpace: 'pre-wrap', marginBottom: '28px', paddingLeft: '12px',
-              borderLeft: `2px solid ${colors.border}`,
-            }}>
-              {renderAssistantContent(msg.content)}
+            <div style={{ marginBottom: '28px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px' }}>
+                <div style={{
+                  width: '28px', height: '28px', borderRadius: '50%',
+                  background: `linear-gradient(135deg, ${colors.accent}, ${isDark ? '#a78bfa' : '#818cf8'})`,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  fontSize: '13px', color: '#fff', fontWeight: 700, flexShrink: 0,
+                }}>AI</div>
+                <span style={{ fontSize: '12px', color: colors.dim, fontWeight: 600 }}>Assistant</span>
+              </div>
+              <div style={{
+                whiteSpace: 'pre-wrap', paddingLeft: '36px',
+              }}>
+                {renderAssistantContent(msg.content)}
+              </div>
             </div>
           )}
         </div>
       ))}
 
       {isLoading && messages[messages.length - 1]?.role === 'user' && (
-        <div style={{
-          color: colors.accent, paddingLeft: '12px', marginBottom: '8px',
-          animation: 'pulse 1.5s ease-in-out infinite',
-        }}>
-          <span style={{ letterSpacing: '3px' }}>···</span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
+          <div style={{
+            width: '28px', height: '28px', borderRadius: '50%',
+            background: `linear-gradient(135deg, ${colors.accent}, ${isDark ? '#a78bfa' : '#818cf8'})`,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            fontSize: '13px', color: '#fff', fontWeight: 700,
+          }}>AI</div>
+          <span style={{
+            color: colors.accent, animation: 'pulse 1.5s ease-in-out infinite',
+            letterSpacing: '3px',
+          }}>···</span>
         </div>
       )}
 
