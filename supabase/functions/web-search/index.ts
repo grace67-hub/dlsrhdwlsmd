@@ -12,63 +12,103 @@ serve(async (req) => {
 
   try {
     const { query, scrape_url } = await req.json();
-    const FIRECRAWL_API_KEY = Deno.env.get("FIRECRAWL_API_KEY");
 
-    if (!FIRECRAWL_API_KEY) {
-      throw new Error("FIRECRAWL_API_KEY is not configured");
-    }
-
-    // If scrape_url is provided, scrape that specific URL
+    // scrape_url 처리: 페이지 내용을 가져옴
     if (scrape_url) {
-      const response = await fetch("https://api.firecrawl.dev/v2/scrape", {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${FIRECRAWL_API_KEY}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          url: scrape_url,
-          formats: ["markdown", "screenshot", "links"],
-          onlyMainContent: true,
-        }),
-      });
+      try {
+        const res = await fetch(scrape_url, {
+          headers: { "User-Agent": "Mozilla/5.0 (compatible; SearchBot/1.0)" },
+        });
+        const html = await res.text();
+        // 간단한 텍스트 추출 (태그 제거)
+        const markdown = html
+          .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, "")
+          .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, "")
+          .replace(/<[^>]+>/g, " ")
+          .replace(/\s+/g, " ")
+          .trim()
+          .slice(0, 3000);
 
-      const data = await response.json();
-      if (!response.ok) {
-        throw new Error(data.error || `Scrape failed: ${response.status}`);
+        return new Response(
+          JSON.stringify({ success: true, type: "scrape", data: { markdown } }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      } catch (e) {
+        return new Response(
+          JSON.stringify({ success: false, error: "스크래핑 실패" }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
       }
-
-      return new Response(JSON.stringify({ success: true, type: "scrape", data }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
     }
 
-    // Otherwise, search
     if (!query) {
       throw new Error("query or scrape_url required");
     }
 
-    const response = await fetch("https://api.firecrawl.dev/v2/search", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${FIRECRAWL_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        query,
-        limit: 5,
-        scrapeOptions: { formats: ["markdown"] },
-      }),
+    // DuckDuckGo Instant Answer API 사용 (무료, API 키 불필요)
+    const ddgUrl = `https://api.duckduckgo.com/?q=${encodeURIComponent(query)}&format=json&no_html=1&skip_disambig=1`;
+    const ddgRes = await fetch(ddgUrl, {
+      headers: { "User-Agent": "Mozilla/5.0 (compatible; SearchBot/1.0)" },
     });
+    const ddgData = await ddgRes.json();
 
-    const data = await response.json();
-    if (!response.ok) {
-      throw new Error(data.error || `Search failed: ${response.status}`);
+    // 결과 정리
+    const results: any[] = [];
+
+    // Abstract (주요 정보)
+    if (ddgData.AbstractText) {
+      results.push({
+        title: ddgData.Heading || query,
+        url: ddgData.AbstractURL || `https://duckduckgo.com/?q=${encodeURIComponent(query)}`,
+        description: ddgData.AbstractText,
+        markdown: ddgData.AbstractText,
+      });
     }
 
-    return new Response(JSON.stringify({ success: true, type: "search", data }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    // RelatedTopics
+    if (ddgData.RelatedTopics) {
+      for (const topic of ddgData.RelatedTopics.slice(0, 4)) {
+        if (topic.Text && topic.FirstURL) {
+          results.push({
+            title: topic.Text.slice(0, 80),
+            url: topic.FirstURL,
+            description: topic.Text,
+            markdown: topic.Text,
+          });
+        }
+      }
+    }
+
+    // Answer
+    if (ddgData.Answer) {
+      results.unshift({
+        title: `답변: ${query}`,
+        url: `https://duckduckgo.com/?q=${encodeURIComponent(query)}`,
+        description: ddgData.Answer,
+        markdown: ddgData.Answer,
+      });
+    }
+
+    // 결과가 없으면 기본 검색 링크 제공
+    if (results.length === 0) {
+      results.push({
+        title: `"${query}" 검색 결과`,
+        url: `https://www.google.com/search?q=${encodeURIComponent(query)}`,
+        description: `Google에서 "${query}" 검색하기`,
+        markdown: `"${query}"에 대한 자세한 정보는 Google에서 검색하세요.`,
+      });
+      results.push({
+        title: `네이버 검색: ${query}`,
+        url: `https://search.naver.com/search.naver?query=${encodeURIComponent(query)}`,
+        description: `네이버에서 "${query}" 검색하기`,
+        markdown: `"${query}"에 대한 국내 정보는 네이버에서 검색하세요.`,
+      });
+    }
+
+    return new Response(
+      JSON.stringify({ success: true, type: "search", data: { data: results } }),
+      { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
   } catch (error) {
     console.error("Web search error:", error);
     return new Response(
