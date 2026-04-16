@@ -285,82 +285,8 @@ const Index = () => {
     return <DisguisePage onUnlock={() => setAppMode('ai')} />;
   }
 
-  // Scroll
-  useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages, isLoading, systemLines, searchStatus]);
 
-  // Click outside menu
-  useEffect(() => {
-    const handler = (e: MouseEvent) => {
-      if (menuRef.current && !menuRef.current.contains(e.target as Node)) setShowMenu(false);
-    };
-    if (showMenu) document.addEventListener('mousedown', handler);
-    return () => document.removeEventListener('mousedown', handler);
-  }, [showMenu]);
 
-  const hasShownLogin = useRef(false);
-  const prevUserId = useRef<string | null>(null);
-  useEffect(() => {
-    if (user) {
-      loadConversations();
-      if (prevUserId.current !== user.id && username && !hasShownLogin.current) {
-        hasShownLogin.current = true;
-        addSystem('로그인됨: ' + username);
-      }
-      prevUserId.current = user.id;
-    } else {
-      hasShownLogin.current = false;
-      prevUserId.current = null;
-    }
-  }, [user, username]);
-
-  const addSystem = (text: string) => {
-    setSystemLines(prev => [...prev, text]);
-    setTimeout(() => setSystemLines(prev => prev.filter(l => l !== text)), 4000);
-  };
-
-  // Keyboard shortcuts
-  useEffect(() => {
-    const handler = (e: globalThis.KeyboardEvent) => {
-      if (inputMode) return;
-      if (e.ctrlKey || e.metaKey) {
-        switch (e.key.toLowerCase()) {
-          case 'l': e.preventDefault();
-            if (user) { addSystem('이미 로그인됨'); return; }
-            setInputMode('login_id'); addSystem('아이디:'); return;
-          case 'r': e.preventDefault();
-            if (user) { addSystem('이미 로그인됨'); return; }
-            setInputMode('signup_id'); addSystem('아이디:'); return;
-          case 'q': e.preventDefault();
-            if (!user) { addSystem('로그인 안됨'); return; }
-            logout().then(() => { clearMessages(); setCurrentConversationId(null); addSystem('로그아웃됨'); }); return;
-          case 'n': e.preventDefault();
-            if (!user) { addSystem('로그인 필요'); return; }
-            clearMessages(); createConversation().then(id => { if (id) addSystem('새 대화'); }); return;
-          case 'o': e.preventDefault();
-            if (!user) { addSystem('로그인 필요'); return; }
-            loadConversations().then(list => {
-              if (!list.length) { addSystem('대화 없음'); return; }
-              list.forEach((c, i) => addSystem(`${i + 1}. ${c.title}`));
-              setInputMode('open'); addSystem('번호:');
-            }); return;
-          case 'd': e.preventDefault();
-            if (!user) { addSystem('로그인 필요'); return; }
-            loadConversations().then(list => {
-              if (!list.length) { addSystem('대화 없음'); return; }
-              list.forEach((c, i) => addSystem(`${i + 1}. ${c.title}`));
-              setInputMode('delete'); addSystem('삭제할 번호:');
-            }); return;
-          case 'k': e.preventDefault(); clearMessages(); addSystem('화면 지움'); return;
-          case 'h': e.preventDefault(); setShowHelp(p => !p); return;
-          case 'escape': e.preventDefault(); goDisguise(); return;
-        }
-      }
-    };
-    window.addEventListener('keydown', handler);
-    return () => window.removeEventListener('keydown', handler);
-  }, [user, inputMode, conversations, username]);
 
   const handleModeInput = async (val: string) => {
     switch (inputMode) {
