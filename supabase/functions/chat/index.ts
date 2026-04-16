@@ -12,9 +12,9 @@ serve(async (req) => {
 
   try {
     const { messages, web_context } = await req.json();
-    const ANTHROPIC_API_KEY = Deno.env.get("ANTHROPIC_API_KEY");
+    const GEMINI_API_KEY = Deno.env.get("AQ.Ab8RN6IK2z607Xe0a7Z0eMfA0HUf2-uJpNDjdtqTHct-O36X7A");
 
-    if (!ANTHROPIC_API_KEY) {
+    if (!GEMINI_API_KEY) {
       throw new Error("ì„œë¹„ìŠ¤ ì„¤ì •ì´ ì™„ë£Œë˜ì§€ ì•Šì•˜ìŠµë‹ˆë‹¤");
     }
 
@@ -43,21 +43,10 @@ serve(async (req) => {
 
 ${web_context ? `\n**ì‹¤ì‹œê°„ ì›¹ ê²€ìƒ‰ ê²°ê³¼:**\n${web_context}\nìœ„ ê²€ìƒ‰ ê²°ê³¼ë¥¼ ì°¸ê³ í•´ì„œ ì •í™•í•˜ê³  ìµœì‹  ì •ë³´ë¡œ ë‹µë³€í•´.` : ''}`;
 
-    const response = await fetch("https://api.anthropic.com/v1/messages", {
-      method: "POST",
-      headers: {
-        "x-api-key": ANTHROPIC_API_KEY,
-        "anthropic-version": "2023-06-01",
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "claude-sonnet-4-5",
-        max_tokens: 16000,
-        system: systemContent,
-        messages: messages,
-        stream: true,
-      }),
-    });
+fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:streamGenerateContent?key=${GEMINI_API_KEY}`, {
+  headers: { "Content-Type": "application/json" },
+  body: { contents: messages.map(m=>({role:m.role,parts:[{text:m.content}]})), ... }
+})
 
     if (!response.ok) {
       if (response.status === 429) {
@@ -73,7 +62,7 @@ ${web_context ? `\n**ì‹¤ì‹œê°„ ì›¹ ê²€ìƒ‰ ê²°ê³¼:*
         );
       }
       const t = await response.text();
-      console.error("Anthropic API error:", response.status, t);
+      console.error("GEMINI API error:", response.status, t);
       return new Response(
         JSON.stringify({ error: "AI ì‘ë‹µ ì˜¤ë¥˜" }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
