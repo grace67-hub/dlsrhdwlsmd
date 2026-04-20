@@ -108,7 +108,13 @@ export function useAgent() {
     setMessages([]); conversationRef.current = []; stepsRef.current = [];
   }, []);
 
+  const loadHistory = useCallback((msgs: AgentMessage[]) => {
+    setMessages(msgs);
+    conversationRef.current = msgs.map(m => ({ role: m.role, content: m.content }));
+    stepsRef.current = [];
+  }, []);
+
   const pendingQuestion = messages[messages.length - 1]?.pendingQuestion;
 
-  return { messages, isRunning, sendMessage, replyToAgent, clear, pendingQuestion };
+  return { messages, isRunning, sendMessage, replyToAgent, clear, loadHistory, pendingQuestion };
 }
