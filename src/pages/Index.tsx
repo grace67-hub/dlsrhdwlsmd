@@ -550,19 +550,17 @@ const Index = () => {
         </div>
       )}
 
-      {messages.map((msg, i) => (
+      {!agentMode && messages.map((msg, i) => (
         <div key={msg.id}>
           {msg.role === 'user' && i > 0 && (
             <div style={{ height: '40px', borderTop: `1px solid ${colors.border}`, marginBottom: '20px' }} />
           )}
-
           {msg.role === 'user' && (
             <div style={{ whiteSpace: 'pre-wrap', marginBottom: '16px' }}>
               <span style={{ color: colors.dim }}>&gt; </span>
               {renderContent(msg.content, colors.link)}
             </div>
           )}
-
           {msg.role === 'assistant' && (
             <div style={{ whiteSpace: 'pre-wrap', marginBottom: '24px', paddingLeft: '8px' }}>
               {renderAssistantContent(msg.content)}
@@ -571,8 +569,55 @@ const Index = () => {
         </div>
       ))}
 
-      {/* Search progress indicator */}
-      {(isSearching || searchStatus) && (
+      {agentMode && agent.messages.map((msg, i) => (
+        <div key={msg.id}>
+          {msg.role === 'user' && i > 0 && (
+            <div style={{ height: '40px', borderTop: `1px solid ${colors.border}`, marginBottom: '20px' }} />
+          )}
+          {msg.role === 'user' && (
+            <div style={{ whiteSpace: 'pre-wrap', marginBottom: '16px' }}>
+              <span style={{ color: colors.dim }}>&gt; </span>
+              {renderContent(msg.content, colors.link)}
+            </div>
+          )}
+          {msg.role === 'assistant' && (
+            <div style={{ marginBottom: '24px', paddingLeft: '8px' }}>
+              {msg.steps && msg.steps.length > 0 && (
+                <div style={{
+                  background: colors.searchBg, border: `1px solid ${colors.searchBorder}`,
+                  borderRadius: '6px', padding: '10px 12px', marginBottom: '12px',
+                  fontSize: '12px', fontFamily: 'monospace',
+                }}>
+                  <div style={{ color: colors.link, marginBottom: '6px', fontWeight: 'bold' }}>
+                    🤖 에이전트 작업 로그
+                  </div>
+                  {msg.steps.map((s, si) => <AgentStepRow key={si} step={s} colors={colors} />)}
+                </div>
+              )}
+              {msg.content && (
+                <div style={{ whiteSpace: 'pre-wrap' }}>
+                  {renderAssistantContent(msg.content)}
+                </div>
+              )}
+              {msg.pendingQuestion && (
+                <div style={{
+                  marginTop: '12px', padding: '10px 12px', borderRadius: '6px',
+                  background: isDark ? '#2a1f0a' : '#fff8e1',
+                  border: `1px solid ${isDark ? '#5c4a1a' : '#fcd34d'}`,
+                  color: isDark ? '#fcd34d' : '#92400e', fontSize: '13px',
+                }}>
+                  ❓ {msg.pendingQuestion}
+                  <div style={{ fontSize: '11px', marginTop: '4px', opacity: 0.7 }}>
+                    아래 입력창에 답변을 입력하세요
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      ))}
+
+      {!agentMode && (isSearching || searchStatus) && (
         <div style={{
           padding: '8px 12px', margin: '8px 0', borderRadius: '6px',
           background: colors.searchBg, border: `1px solid ${colors.searchBorder}`,
@@ -583,8 +628,15 @@ const Index = () => {
         </div>
       )}
 
-      {isLoading && messages[messages.length - 1]?.role === 'user' && !searchStatus && (
+      {!agentMode && isLoading && messages[messages.length - 1]?.role === 'user' && !searchStatus && (
         <div style={{ color: colors.dim, paddingLeft: '8px' }}>...</div>
+      )}
+
+      {agentMode && agent.isRunning && (
+        <div style={{ color: colors.link, paddingLeft: '8px', fontSize: '12px' }}>
+          <span style={{ animation: 'pulse 1.5s infinite' }}>⚙</span> 에이전트 작업 중...
+          <style>{`@keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.4; } }`}</style>
+        </div>
       )}
 
       {systemLines.map((line, i) => (
