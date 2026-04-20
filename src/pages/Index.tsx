@@ -368,10 +368,10 @@ const Index = () => {
             setInputMode('signup_id'); addSystem('아이디:'); return;
           case 'q': e.preventDefault();
             if (!user) { addSystem('로그인 안됨'); return; }
-            logout().then(() => { clearMessages(); setCurrentConversationId(null); addSystem('로그아웃됨'); }); return;
+            logout().then(() => { agent.clear(); setCurrentConversationId(null); addSystem('로그아웃됨'); }); return;
           case 'n': e.preventDefault();
             if (!user) { addSystem('로그인 필요'); return; }
-            clearMessages(); createConversation().then(id => { if (id) addSystem('새 대화'); }); return;
+            agent.clear(); createConversation().then(id => { if (id) addSystem('새 대화'); }); return;
           case 'o': e.preventDefault();
             if (!user) { addSystem('로그인 필요'); return; }
             loadConversations().then(list => {
@@ -386,7 +386,7 @@ const Index = () => {
               list.forEach((c, i) => addSystem(`${i + 1}. ${c.title}`));
               setInputMode('delete'); addSystem('삭제할 번호:');
             }); return;
-          case 'k': e.preventDefault(); clearMessages(); addSystem('화면 지움'); return;
+          case 'k': e.preventDefault(); agent.clear(); addSystem('화면 지움'); return;
           case 'h': e.preventDefault(); setShowHelp(p => !p); return;
         }
       }
