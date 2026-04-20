@@ -524,7 +524,7 @@ const Index = () => {
                 <div style={menuItemStyle}
                   onMouseEnter={e => (e.currentTarget.style.background = colors.menuHover)}
                   onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
-                  onClick={() => { setShowMenu(false); clearMessages(); createConversation().then(id => { if (id) addSystem('새 대화'); }); }}>새 대화</div>
+                  onClick={() => { setShowMenu(false); agent.clear(); createConversation().then(id => { if (id) addSystem('새 대화'); }); }}>새 대화</div>
                 <div style={menuItemStyle}
                   onMouseEnter={e => (e.currentTarget.style.background = colors.menuHover)}
                   onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
@@ -550,20 +550,14 @@ const Index = () => {
                 <div style={menuItemStyle}
                   onMouseEnter={e => (e.currentTarget.style.background = colors.menuHover)}
                   onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
-                  onClick={() => { setShowMenu(false); logout().then(() => { clearMessages(); setCurrentConversationId(null); addSystem('로그아웃됨'); }); }}>로그아웃</div>
+                  onClick={() => { setShowMenu(false); logout().then(() => { agent.clear(); setCurrentConversationId(null); addSystem('로그아웃됨'); }); }}>로그아웃</div>
               </>
             )}
             <div style={menuItemStyle}
               onMouseEnter={e => (e.currentTarget.style.background = colors.menuHover)}
               onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
               onClick={() => { setTheme(p => p === 'dark' ? 'light' : 'dark'); setShowMenu(false); }}>
-              {isDark ? '☀ 라이트 모드' : '🌙 다크 모드'}
-            </div>
-            <div style={menuItemStyle}
-              onMouseEnter={e => (e.currentTarget.style.background = colors.menuHover)}
-              onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
-              onClick={() => { setAgentMode(p => !p); setShowMenu(false); addSystem(agentMode ? '에이전트 모드 OFF' : '🤖 에이전트 모드 ON'); }}>
-              {agentMode ? '✓ 에이전트 모드' : '🤖 에이전트 모드'}
+              {isDark ? '라이트 모드' : '다크 모드'}
             </div>
             <div style={{ ...menuItemStyle, borderBottom: 'none', color: '#e55' }}
               onMouseEnter={e => (e.currentTarget.style.background = colors.menuHover)}
@@ -578,30 +572,10 @@ const Index = () => {
           <div>Ctrl+L 로그인 | Ctrl+R 회원가입 | Ctrl+Q 로그아웃</div>
           <div>Ctrl+N 새 대화 | Ctrl+O 대화 열기 | Ctrl+D 대화 삭제</div>
           <div>Ctrl+K 화면 지우기 | Ctrl+H 도움말 | Esc 취소</div>
-          <div style={{ marginTop: '4px', color: colors.dim }}>💡 "검색" 키워드 포함 시 실시간 웹 검색 실행</div>
         </div>
       )}
 
-      {!agentMode && messages.map((msg, i) => (
-        <div key={msg.id}>
-          {msg.role === 'user' && i > 0 && (
-            <div style={{ height: '40px', borderTop: `1px solid ${colors.border}`, marginBottom: '20px' }} />
-          )}
-          {msg.role === 'user' && (
-            <div style={{ whiteSpace: 'pre-wrap', marginBottom: '16px' }}>
-              <span style={{ color: colors.dim }}>&gt; </span>
-              {renderContent(msg.content, colors.link)}
-            </div>
-          )}
-          {msg.role === 'assistant' && (
-            <div style={{ whiteSpace: 'pre-wrap', marginBottom: '24px', paddingLeft: '8px' }}>
-              {renderAssistantContent(msg.content)}
-            </div>
-          )}
-        </div>
-      ))}
-
-      {agentMode && agent.messages.map((msg, i) => (
+      {agent.messages.map((msg, i) => (
         <div key={msg.id}>
           {msg.role === 'user' && i > 0 && (
             <div style={{ height: '40px', borderTop: `1px solid ${colors.border}`, marginBottom: '20px' }} />
@@ -621,7 +595,7 @@ const Index = () => {
                   fontSize: '12px', fontFamily: 'monospace',
                 }}>
                   <div style={{ color: colors.link, marginBottom: '6px', fontWeight: 'bold' }}>
-                    🤖 에이전트 작업 로그
+                    작업 과정
                   </div>
                   {msg.steps.map((s, si) => <AgentStepRow key={si} step={s} colors={colors} />)}
                 </div>
@@ -638,7 +612,7 @@ const Index = () => {
                   border: `1px solid ${isDark ? '#5c4a1a' : '#fcd34d'}`,
                   color: isDark ? '#fcd34d' : '#92400e', fontSize: '13px',
                 }}>
-                  ❓ {msg.pendingQuestion}
+                  질문: {msg.pendingQuestion}
                   <div style={{ fontSize: '11px', marginTop: '4px', opacity: 0.7 }}>
                     아래 입력창에 답변을 입력하세요
                   </div>
@@ -649,24 +623,9 @@ const Index = () => {
         </div>
       ))}
 
-      {!agentMode && (isSearching || searchStatus) && (
-        <div style={{
-          padding: '8px 12px', margin: '8px 0', borderRadius: '6px',
-          background: colors.searchBg, border: `1px solid ${colors.searchBorder}`,
-          fontSize: '12px', color: colors.link, fontFamily: 'monospace',
-        }}>
-          <span style={{ animation: 'pulse 1.5s infinite' }}>🔍</span> {searchStatus}
-          <style>{`@keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.4; } }`}</style>
-        </div>
-      )}
-
-      {!agentMode && isLoading && messages[messages.length - 1]?.role === 'user' && !searchStatus && (
-        <div style={{ color: colors.dim, paddingLeft: '8px' }}>...</div>
-      )}
-
-      {agentMode && agent.isRunning && (
+      {agent.isRunning && (
         <div style={{ color: colors.link, paddingLeft: '8px', fontSize: '12px' }}>
-          <span style={{ animation: 'pulse 1.5s infinite' }}>⚙</span> 에이전트 작업 중...
+          <span style={{ animation: 'pulse 1.5s infinite' }}>·</span> 작업 중...
           <style>{`@keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.4; } }`}</style>
         </div>
       )}
@@ -677,9 +636,9 @@ const Index = () => {
 
       <div style={{ height: '16px' }} />
       <div style={{ display: 'flex', alignItems: 'center' }}>
-        {agentMode && !inputMode && (
+        {!inputMode && agent.pendingQuestion && (
           <span style={{ color: colors.link, marginRight: '6px', fontSize: '12px' }}>
-            {agent.pendingQuestion ? '[💬 답변]' : '[🤖]'}
+            [답변]
           </span>
         )}
         {inputMode && <span style={{ color: colors.dim, marginRight: '4px' }}>{
@@ -689,7 +648,7 @@ const Index = () => {
         }</span>}
         <input ref={inputRef} type={isPasswordMode ? 'password' : 'text'}
           value={input} onChange={e => setInput(e.target.value)} onKeyDown={handleKeyDown}
-          disabled={(isLoading && !isSearching) || (agentMode && agent.isRunning && !agent.pendingQuestion)}
+          disabled={agent.isRunning && !agent.pendingQuestion}
           autoFocus spellCheck={false}
           style={{
             background: 'transparent', border: 'none', outline: 'none',
