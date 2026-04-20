@@ -90,7 +90,7 @@ export function useAgent() {
     setIsRunning(true);
     try { await runStream(); }
     catch (e) {
-      toast({ variant: 'destructive', title: '에이전트 오류', description: e instanceof Error ? e.message : '오류' });
+      toast({ variant: 'destructive', title: '오류', description: e instanceof Error ? e.message : '오류' });
     } finally { setIsRunning(false); }
   }, [isRunning]);
 
@@ -108,7 +108,13 @@ export function useAgent() {
     setMessages([]); conversationRef.current = []; stepsRef.current = [];
   }, []);
 
+  const loadHistory = useCallback((msgs: AgentMessage[]) => {
+    setMessages(msgs);
+    conversationRef.current = msgs.map(m => ({ role: m.role, content: m.content }));
+    stepsRef.current = [];
+  }, []);
+
   const pendingQuestion = messages[messages.length - 1]?.pendingQuestion;
 
-  return { messages, isRunning, sendMessage, replyToAgent, clear, pendingQuestion };
+  return { messages, isRunning, sendMessage, replyToAgent, clear, loadHistory, pendingQuestion };
 }

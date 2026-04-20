@@ -1,5 +1,5 @@
 import { useRef, useEffect, useState, KeyboardEvent, useMemo } from 'react';
-import { useChat, Message } from '@/hooks/useChat';
+// useChat removed - using agent for everything
 import { useAuth } from '@/hooks/useAuth';
 import { useConversations } from '@/hooks/useConversations';
 import { useAgent, AgentStep } from '@/hooks/useAgent';
@@ -69,7 +69,7 @@ const renderWithImages = (text: string, linkColor: string) => {
           <a href={url} target="_blank" rel="noopener noreferrer" style={{ 
             color: linkColor, textDecoration: 'none', fontSize: '13px', fontWeight: 'bold' 
           }}>
-            🔗 {desc}
+            {desc}
           </a>
           <div style={{ fontSize: '11px', color: '#888', marginTop: '4px' }}>{url}</div>
         </div>
@@ -238,21 +238,21 @@ const AgentStepRow = ({ step, colors }: { step: AgentStep; colors: any }) => {
   if (step.kind === 'thinking')
     return <div style={{ ...base, color: colors.dim }}>· 단계 {step.n}: 생각 중...</div>;
   if (step.kind === 'thought')
-    return <div style={{ ...base, color: colors.dimmer, fontStyle: 'italic' }}>💭 {step.text}</div>;
+    return <div style={{ ...base, color: colors.dimmer, fontStyle: 'italic' }}>  생각: {step.text}</div>;
   if (step.kind === 'tool_call') {
     const arg = step.tool === 'web_search' ? step.args.query
       : step.tool === 'scrape_url' ? step.args.url
       : step.tool === 'ask_user' ? step.args.question : '';
-    const icon = step.tool === 'web_search' ? '🔍' : step.tool === 'scrape_url' ? '🌐' : step.tool === 'ask_user' ? '❓' : '🔧';
-    return <div style={{ ...base, color: colors.link }}>{icon} {step.tool}: <span style={{ color: colors.text }}>{String(arg).slice(0, 100)}</span></div>;
+    const label = step.tool === 'web_search' ? '검색' : step.tool === 'scrape_url' ? '페이지 열기' : step.tool === 'ask_user' ? '질문' : step.tool;
+    return <div style={{ ...base, color: colors.link }}>&gt; {label}: <span style={{ color: colors.text }}>{String(arg).slice(0, 100)}</span></div>;
   }
   if (step.kind === 'tool_result') {
-    if (step.result?.error) return <div style={{ ...base, color: '#e55' }}>  ✗ {step.result.error}</div>;
+    if (step.result?.error) return <div style={{ ...base, color: '#e55' }}>  실패: {step.result.error}</div>;
     if (step.tool === 'web_search') {
       const n = step.result?.results?.length || 0;
       return (
         <div style={{ ...base, color: colors.dim }}>
-          ✓ {n}개 결과
+          {n}개 결과
           {step.result?.results?.slice(0, 3).map((r: any, i: number) => (
             <div key={i} style={{ marginLeft: '12px', fontSize: '11px' }}>
               · <a href={r.url} target="_blank" rel="noopener noreferrer" style={{ color: colors.link, textDecoration: 'underline' }}>{r.title?.slice(0, 70)}</a>
@@ -263,19 +263,18 @@ const AgentStepRow = ({ step, colors }: { step: AgentStep; colors: any }) => {
     }
     if (step.tool === 'scrape_url') {
       const len = (step.result?.markdown || '').length;
-      return <div style={{ ...base, color: colors.dim }}>  ✓ {len}자 가져옴 {step.result?.title && `- ${step.result.title.slice(0, 60)}`}</div>;
+      return <div style={{ ...base, color: colors.dim }}>  {len}자 가져옴 {step.result?.title && `- ${step.result.title.slice(0, 60)}`}</div>;
     }
-    return <div style={{ ...base, color: colors.dim }}>  ✓ 완료</div>;
+    return <div style={{ ...base, color: colors.dim }}>  완료</div>;
   }
   if (step.kind === 'error')
-    return <div style={{ ...base, color: '#e55' }}>⚠ {step.message}</div>;
+    return <div style={{ ...base, color: '#e55' }}>오류: {step.message}</div>;
   if (step.kind === 'ask_user')
-    return <div style={{ ...base, color: '#fcd34d' }}>❓ {step.question}</div>;
+    return <div style={{ ...base, color: '#fcd34d' }}>질문: {step.question}</div>;
   return null;
 };
 
 const Index = () => {
-  const { messages, isLoading, isSearching, searchStatus, sendMessage, clearMessages, setMessages } = useChat();
   const agent = useAgent();
   const { user, username, loading: authLoading, login, signup, logout } = useAuth();
   const {
@@ -291,7 +290,6 @@ const Index = () => {
   const [showMenu, setShowMenu] = useState(false);
   const [theme, setTheme] = useState<ThemeMode>('dark');
   const [appMode, setAppMode] = useState<AppMode>('disguise');
-  const [agentMode, setAgentMode] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -316,7 +314,7 @@ const Index = () => {
   // Escape back to disguise
   const goDisguise = () => {
     setAppMode('disguise');
-    clearMessages();
+    agent.clear();
     if (user) logout();
   };
 
@@ -324,7 +322,7 @@ const Index = () => {
   useEffect(() => {
     if (appMode !== 'ai') return;
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages, isLoading, systemLines, searchStatus, appMode, agent.messages, agent.isRunning]);
+  }, [systemLines, appMode, agent.messages, agent.isRunning]);
 
   // Click outside menu
   useEffect(() => {
@@ -370,10 +368,10 @@ const Index = () => {
             setInputMode('signup_id'); addSystem('아이디:'); return;
           case 'q': e.preventDefault();
             if (!user) { addSystem('로그인 안됨'); return; }
-            logout().then(() => { clearMessages(); setCurrentConversationId(null); addSystem('로그아웃됨'); }); return;
+            logout().then(() => { agent.clear(); setCurrentConversationId(null); addSystem('로그아웃됨'); }); return;
           case 'n': e.preventDefault();
             if (!user) { addSystem('로그인 필요'); return; }
-            clearMessages(); createConversation().then(id => { if (id) addSystem('새 대화'); }); return;
+            agent.clear(); createConversation().then(id => { if (id) addSystem('새 대화'); }); return;
           case 'o': e.preventDefault();
             if (!user) { addSystem('로그인 필요'); return; }
             loadConversations().then(list => {
@@ -388,7 +386,7 @@ const Index = () => {
               list.forEach((c, i) => addSystem(`${i + 1}. ${c.title}`));
               setInputMode('delete'); addSystem('삭제할 번호:');
             }); return;
-          case 'k': e.preventDefault(); clearMessages(); addSystem('화면 지움'); return;
+          case 'k': e.preventDefault(); agent.clear(); addSystem('화면 지움'); return;
           case 'h': e.preventDefault(); setShowHelp(p => !p); return;
         }
       }
@@ -420,7 +418,8 @@ const Index = () => {
         const idx = parseInt(val) - 1;
         if (isNaN(idx) || idx < 0 || idx >= conversations.length) { addSystem('잘못된 번호'); return; }
         const msgs = await loadMessages(conversations[idx].id);
-        setMessages(msgs.map(m => ({ id: m.id, role: m.role as 'user' | 'assistant', content: m.content })));
+        agent.loadHistory(msgs.map(m => ({ id: m.id, role: m.role as 'user' | 'assistant', content: m.content })));
+        setCurrentConversationId(conversations[idx].id);
         addSystem(`"${conversations[idx].title}" 열림`); return;
       }
       case 'delete': {
@@ -428,7 +427,7 @@ const Index = () => {
         const idx = parseInt(val) - 1;
         if (isNaN(idx) || idx < 0 || idx >= conversations.length) { addSystem('잘못된 번호'); return; }
         await deleteConversation(conversations[idx].id);
-        clearMessages(); addSystem('삭제됨'); return;
+        agent.clear(); addSystem('삭제됨'); return;
       }
     }
   };
@@ -437,31 +436,23 @@ const Index = () => {
     if (e.key === 'Escape') {
       if (inputMode) { setInputMode(null); setInput(''); addSystem('취소'); return; }
     }
-    if (e.key === 'Enter' && input.trim() && !isLoading && !agent.isRunning) {
+    if (e.key === 'Enter' && input.trim() && !agent.isRunning) {
       const val = input.trim(); setInput('');
       if (inputMode) { handleModeInput(val); return; }
 
-      // Agent mode: route to agent
-      if (agentMode) {
-        if (agent.pendingQuestion) { agent.replyToAgent(val); return; }
-        agent.sendMessage(val); return;
-      }
+      // Reply to agent if waiting
+      if (agent.pendingQuestion) { agent.replyToAgent(val); return; }
 
-      // Check for search commands
-      const enableSearch = /검색|찾아줘|찾아봐|실시간|서칭|search/i.test(val);
-
+      // Send to agent (always agent mode)
       if (user && !currentConversationId) {
-        createConversation(val.slice(0, 50)).then(cId => { if (cId) sendMessageWithSave(val, cId, enableSearch); }); return;
+        createConversation(val.slice(0, 50)).then(cId => {
+          if (cId && user) saveMessage(cId, 'user', val);
+          agent.sendMessage(val);
+        }); return;
       }
-      sendMessageWithSave(val, currentConversationId, enableSearch);
+      if (currentConversationId && user) saveMessage(currentConversationId, 'user', val);
+      agent.sendMessage(val);
     }
-  };
-
-  const sendMessageWithSave = async (content: string, convId: string | null, enableSearch = false) => {
-    if (convId && user) await saveMessage(convId, 'user', content);
-    await sendMessage(content, async (ac: string) => {
-      if (convId && user) await saveMessage(convId, 'assistant', ac);
-    }, { enableSearch });
   };
 
   if (authLoading) return null;
@@ -533,7 +524,7 @@ const Index = () => {
                 <div style={menuItemStyle}
                   onMouseEnter={e => (e.currentTarget.style.background = colors.menuHover)}
                   onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
-                  onClick={() => { setShowMenu(false); clearMessages(); createConversation().then(id => { if (id) addSystem('새 대화'); }); }}>새 대화</div>
+                  onClick={() => { setShowMenu(false); agent.clear(); createConversation().then(id => { if (id) addSystem('새 대화'); }); }}>새 대화</div>
                 <div style={menuItemStyle}
                   onMouseEnter={e => (e.currentTarget.style.background = colors.menuHover)}
                   onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
@@ -559,20 +550,14 @@ const Index = () => {
                 <div style={menuItemStyle}
                   onMouseEnter={e => (e.currentTarget.style.background = colors.menuHover)}
                   onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
-                  onClick={() => { setShowMenu(false); logout().then(() => { clearMessages(); setCurrentConversationId(null); addSystem('로그아웃됨'); }); }}>로그아웃</div>
+                  onClick={() => { setShowMenu(false); logout().then(() => { agent.clear(); setCurrentConversationId(null); addSystem('로그아웃됨'); }); }}>로그아웃</div>
               </>
             )}
             <div style={menuItemStyle}
               onMouseEnter={e => (e.currentTarget.style.background = colors.menuHover)}
               onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
               onClick={() => { setTheme(p => p === 'dark' ? 'light' : 'dark'); setShowMenu(false); }}>
-              {isDark ? '☀ 라이트 모드' : '🌙 다크 모드'}
-            </div>
-            <div style={menuItemStyle}
-              onMouseEnter={e => (e.currentTarget.style.background = colors.menuHover)}
-              onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
-              onClick={() => { setAgentMode(p => !p); setShowMenu(false); addSystem(agentMode ? '에이전트 모드 OFF' : '🤖 에이전트 모드 ON'); }}>
-              {agentMode ? '✓ 에이전트 모드' : '🤖 에이전트 모드'}
+              {isDark ? '라이트 모드' : '다크 모드'}
             </div>
             <div style={{ ...menuItemStyle, borderBottom: 'none', color: '#e55' }}
               onMouseEnter={e => (e.currentTarget.style.background = colors.menuHover)}
@@ -587,30 +572,10 @@ const Index = () => {
           <div>Ctrl+L 로그인 | Ctrl+R 회원가입 | Ctrl+Q 로그아웃</div>
           <div>Ctrl+N 새 대화 | Ctrl+O 대화 열기 | Ctrl+D 대화 삭제</div>
           <div>Ctrl+K 화면 지우기 | Ctrl+H 도움말 | Esc 취소</div>
-          <div style={{ marginTop: '4px', color: colors.dim }}>💡 "검색" 키워드 포함 시 실시간 웹 검색 실행</div>
         </div>
       )}
 
-      {!agentMode && messages.map((msg, i) => (
-        <div key={msg.id}>
-          {msg.role === 'user' && i > 0 && (
-            <div style={{ height: '40px', borderTop: `1px solid ${colors.border}`, marginBottom: '20px' }} />
-          )}
-          {msg.role === 'user' && (
-            <div style={{ whiteSpace: 'pre-wrap', marginBottom: '16px' }}>
-              <span style={{ color: colors.dim }}>&gt; </span>
-              {renderContent(msg.content, colors.link)}
-            </div>
-          )}
-          {msg.role === 'assistant' && (
-            <div style={{ whiteSpace: 'pre-wrap', marginBottom: '24px', paddingLeft: '8px' }}>
-              {renderAssistantContent(msg.content)}
-            </div>
-          )}
-        </div>
-      ))}
-
-      {agentMode && agent.messages.map((msg, i) => (
+      {agent.messages.map((msg, i) => (
         <div key={msg.id}>
           {msg.role === 'user' && i > 0 && (
             <div style={{ height: '40px', borderTop: `1px solid ${colors.border}`, marginBottom: '20px' }} />
@@ -630,7 +595,7 @@ const Index = () => {
                   fontSize: '12px', fontFamily: 'monospace',
                 }}>
                   <div style={{ color: colors.link, marginBottom: '6px', fontWeight: 'bold' }}>
-                    🤖 에이전트 작업 로그
+                    작업 과정
                   </div>
                   {msg.steps.map((s, si) => <AgentStepRow key={si} step={s} colors={colors} />)}
                 </div>
@@ -647,7 +612,7 @@ const Index = () => {
                   border: `1px solid ${isDark ? '#5c4a1a' : '#fcd34d'}`,
                   color: isDark ? '#fcd34d' : '#92400e', fontSize: '13px',
                 }}>
-                  ❓ {msg.pendingQuestion}
+                  질문: {msg.pendingQuestion}
                   <div style={{ fontSize: '11px', marginTop: '4px', opacity: 0.7 }}>
                     아래 입력창에 답변을 입력하세요
                   </div>
@@ -658,24 +623,9 @@ const Index = () => {
         </div>
       ))}
 
-      {!agentMode && (isSearching || searchStatus) && (
-        <div style={{
-          padding: '8px 12px', margin: '8px 0', borderRadius: '6px',
-          background: colors.searchBg, border: `1px solid ${colors.searchBorder}`,
-          fontSize: '12px', color: colors.link, fontFamily: 'monospace',
-        }}>
-          <span style={{ animation: 'pulse 1.5s infinite' }}>🔍</span> {searchStatus}
-          <style>{`@keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.4; } }`}</style>
-        </div>
-      )}
-
-      {!agentMode && isLoading && messages[messages.length - 1]?.role === 'user' && !searchStatus && (
-        <div style={{ color: colors.dim, paddingLeft: '8px' }}>...</div>
-      )}
-
-      {agentMode && agent.isRunning && (
+      {agent.isRunning && (
         <div style={{ color: colors.link, paddingLeft: '8px', fontSize: '12px' }}>
-          <span style={{ animation: 'pulse 1.5s infinite' }}>⚙</span> 에이전트 작업 중...
+          <span style={{ animation: 'pulse 1.5s infinite' }}>·</span> 작업 중...
           <style>{`@keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.4; } }`}</style>
         </div>
       )}
@@ -686,9 +636,9 @@ const Index = () => {
 
       <div style={{ height: '16px' }} />
       <div style={{ display: 'flex', alignItems: 'center' }}>
-        {agentMode && !inputMode && (
+        {!inputMode && agent.pendingQuestion && (
           <span style={{ color: colors.link, marginRight: '6px', fontSize: '12px' }}>
-            {agent.pendingQuestion ? '[💬 답변]' : '[🤖]'}
+            [답변]
           </span>
         )}
         {inputMode && <span style={{ color: colors.dim, marginRight: '4px' }}>{
@@ -698,7 +648,7 @@ const Index = () => {
         }</span>}
         <input ref={inputRef} type={isPasswordMode ? 'password' : 'text'}
           value={input} onChange={e => setInput(e.target.value)} onKeyDown={handleKeyDown}
-          disabled={(isLoading && !isSearching) || (agentMode && agent.isRunning && !agent.pendingQuestion)}
+          disabled={agent.isRunning && !agent.pendingQuestion}
           autoFocus spellCheck={false}
           style={{
             background: 'transparent', border: 'none', outline: 'none',
