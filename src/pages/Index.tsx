@@ -1,5 +1,5 @@
 import { useRef, useEffect, useState, KeyboardEvent, useMemo } from 'react';
-import { useChat, Message } from '@/hooks/useChat';
+// useChat removed - using agent for everything
 import { useAuth } from '@/hooks/useAuth';
 import { useConversations } from '@/hooks/useConversations';
 import { useAgent, AgentStep } from '@/hooks/useAgent';
