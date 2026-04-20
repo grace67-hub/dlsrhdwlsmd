@@ -314,7 +314,7 @@ const Index = () => {
   // Escape back to disguise
   const goDisguise = () => {
     setAppMode('disguise');
-    clearMessages();
+    agent.clear();
     if (user) logout();
   };
 
@@ -322,7 +322,7 @@ const Index = () => {
   useEffect(() => {
     if (appMode !== 'ai') return;
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages, isLoading, systemLines, searchStatus, appMode, agent.messages, agent.isRunning]);
+  }, [systemLines, appMode, agent.messages, agent.isRunning]);
 
   // Click outside menu
   useEffect(() => {
