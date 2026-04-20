@@ -233,6 +233,47 @@ const DisguisePage = ({ onUnlock }: { onUnlock: () => void }) => {
   );
 };
 
+const AgentStepRow = ({ step, colors }: { step: AgentStep; colors: any }) => {
+  const base: React.CSSProperties = { padding: '3px 0', color: colors.text, lineHeight: 1.5 };
+  if (step.kind === 'thinking')
+    return <div style={{ ...base, color: colors.dim }}>· 단계 {step.n}: 생각 중...</div>;
+  if (step.kind === 'thought')
+    return <div style={{ ...base, color: colors.dimmer, fontStyle: 'italic' }}>💭 {step.text}</div>;
+  if (step.kind === 'tool_call') {
+    const arg = step.tool === 'web_search' ? step.args.query
+      : step.tool === 'scrape_url' ? step.args.url
+      : step.tool === 'ask_user' ? step.args.question : '';
+    const icon = step.tool === 'web_search' ? '🔍' : step.tool === 'scrape_url' ? '🌐' : step.tool === 'ask_user' ? '❓' : '🔧';
+    return <div style={{ ...base, color: colors.link }}>{icon} {step.tool}: <span style={{ color: colors.text }}>{String(arg).slice(0, 100)}</span></div>;
+  }
+  if (step.kind === 'tool_result') {
+    if (step.result?.error) return <div style={{ ...base, color: '#e55' }}>  ✗ {step.result.error}</div>;
+    if (step.tool === 'web_search') {
+      const n = step.result?.results?.length || 0;
+      return (
+        <div style={{ ...base, color: colors.dim }}>
+          ✓ {n}개 결과
+          {step.result?.results?.slice(0, 3).map((r: any, i: number) => (
+            <div key={i} style={{ marginLeft: '12px', fontSize: '11px' }}>
+              · <a href={r.url} target="_blank" rel="noopener noreferrer" style={{ color: colors.link, textDecoration: 'underline' }}>{r.title?.slice(0, 70)}</a>
+            </div>
+          ))}
+        </div>
+      );
+    }
+    if (step.tool === 'scrape_url') {
+      const len = (step.result?.markdown || '').length;
+      return <div style={{ ...base, color: colors.dim }}>  ✓ {len}자 가져옴 {step.result?.title && `- ${step.result.title.slice(0, 60)}`}</div>;
+    }
+    return <div style={{ ...base, color: colors.dim }}>  ✓ 완료</div>;
+  }
+  if (step.kind === 'error')
+    return <div style={{ ...base, color: '#e55' }}>⚠ {step.message}</div>;
+  if (step.kind === 'ask_user')
+    return <div style={{ ...base, color: '#fcd34d' }}>❓ {step.question}</div>;
+  return null;
+};
+
 const Index = () => {
   const { messages, isLoading, isSearching, searchStatus, sendMessage, clearMessages, setMessages } = useChat();
   const agent = useAgent();
