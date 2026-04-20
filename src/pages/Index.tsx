@@ -69,7 +69,7 @@ const renderWithImages = (text: string, linkColor: string) => {
           <a href={url} target="_blank" rel="noopener noreferrer" style={{ 
             color: linkColor, textDecoration: 'none', fontSize: '13px', fontWeight: 'bold' 
           }}>
-            🔗 {desc}
+            {desc}
           </a>
           <div style={{ fontSize: '11px', color: '#888', marginTop: '4px' }}>{url}</div>
         </div>
