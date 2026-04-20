@@ -275,7 +275,6 @@ const AgentStepRow = ({ step, colors }: { step: AgentStep; colors: any }) => {
 };
 
 const Index = () => {
-  const { messages, isLoading, isSearching, searchStatus, sendMessage, clearMessages, setMessages } = useChat();
   const agent = useAgent();
   const { user, username, loading: authLoading, login, signup, logout } = useAuth();
   const {
@@ -291,7 +290,6 @@ const Index = () => {
   const [showMenu, setShowMenu] = useState(false);
   const [theme, setTheme] = useState<ThemeMode>('dark');
   const [appMode, setAppMode] = useState<AppMode>('disguise');
-  const [agentMode, setAgentMode] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
