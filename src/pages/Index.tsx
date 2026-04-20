@@ -2,6 +2,7 @@ import { useRef, useEffect, useState, KeyboardEvent, useMemo } from 'react';
 import { useChat, Message } from '@/hooks/useChat';
 import { useAuth } from '@/hooks/useAuth';
 import { useConversations } from '@/hooks/useConversations';
+import { useAgent, AgentStep } from '@/hooks/useAgent';
 
 const SECRET_CODE = 'wjddbwnsgv12!!';
 
