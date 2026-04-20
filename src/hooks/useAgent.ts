@@ -90,7 +90,7 @@ export function useAgent() {
     setIsRunning(true);
     try { await runStream(); }
     catch (e) {
-      toast({ variant: 'destructive', title: '에이전트 오류', description: e instanceof Error ? e.message : '오류' });
+      toast({ variant: 'destructive', title: '오류', description: e instanceof Error ? e.message : '오류' });
     } finally { setIsRunning(false); }
   }, [isRunning]);
 
