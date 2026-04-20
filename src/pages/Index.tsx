@@ -97,63 +97,136 @@ const DisguisePage = ({ onUnlock }: { onUnlock: () => void }) => {
     }
   };
 
+  const [focused, setFocused] = useState(false);
+
   return (
     <div style={{
       minHeight: '100vh', width: '100%', background: '#fff',
-      display: 'flex', flexDirection: 'column', alignItems: 'center',
-      justifyContent: 'center', fontFamily: 'Arial, sans-serif',
+      display: 'flex', flexDirection: 'column',
+      fontFamily: 'arial, sans-serif',
     }}>
-      <div style={{ marginBottom: '30px', textAlign: 'center' }}>
-        <h1 style={{
-          fontSize: '72px', fontWeight: 400, margin: 0,
-          background: 'linear-gradient(90deg, #4285f4, #ea4335, #fbbc05, #34a853)',
-          WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
-          letterSpacing: '-2px',
-        }}>Search</h1>
+      {/* Top nav */}
+      <div style={{
+        display: 'flex', justifyContent: 'flex-end', alignItems: 'center',
+        padding: '14px 20px', gap: '20px', fontSize: '13px',
+      }}>
+        <a href="#" onClick={e => e.preventDefault()} style={{ color: '#000', textDecoration: 'none' }}>Gmail</a>
+        <a href="#" onClick={e => e.preventDefault()} style={{ color: '#000', textDecoration: 'none' }}>이미지</a>
+        <div style={{
+          width: '32px', height: '32px', borderRadius: '50%',
+          background: '#1a73e8', color: '#fff', display: 'flex',
+          alignItems: 'center', justifyContent: 'center', fontSize: '14px', fontWeight: 500,
+        }}>S</div>
       </div>
 
-      <form onSubmit={handleSearch} style={{ width: '100%', maxWidth: '580px', padding: '0 20px' }}>
-        <div style={{
-          display: 'flex', alignItems: 'center', border: '1px solid #dfe1e5',
-          borderRadius: '24px', padding: '10px 20px', boxShadow: '0 1px 6px rgba(32,33,36,0.08)',
-          background: '#fff',
-        }}>
-          <span style={{ color: '#9aa0a6', marginRight: '12px', fontSize: '18px' }}>🔍</span>
-          <input
-            type="text"
-            value={query}
-            onChange={e => { setQuery(e.target.value); setError(''); }}
-            autoFocus
-            style={{
-              flex: 1, border: 'none', outline: 'none', fontSize: '16px',
-              fontFamily: 'Arial, sans-serif', color: '#202124', background: 'transparent',
+      {/* Main */}
+      <div style={{
+        flex: 1, display: 'flex', flexDirection: 'column',
+        alignItems: 'center', justifyContent: 'center', marginTop: '-80px',
+      }}>
+        <div style={{ marginBottom: '28px', textAlign: 'center' }}>
+          <h1 style={{
+            fontSize: '92px', fontWeight: 400, margin: 0, letterSpacing: '-3px',
+            display: 'flex', gap: '0',
+          }}>
+            <span style={{ color: '#4285f4' }}>S</span>
+            <span style={{ color: '#ea4335' }}>e</span>
+            <span style={{ color: '#fbbc05' }}>a</span>
+            <span style={{ color: '#4285f4' }}>r</span>
+            <span style={{ color: '#34a853' }}>c</span>
+            <span style={{ color: '#ea4335' }}>h</span>
+          </h1>
+        </div>
+
+        <form onSubmit={handleSearch} style={{ width: '100%', maxWidth: '584px', padding: '0 20px' }}>
+          <div style={{
+            display: 'flex', alignItems: 'center',
+            border: `1px solid ${focused ? 'transparent' : '#dfe1e5'}`,
+            borderRadius: '24px', padding: '5px 14px', height: '44px',
+            boxShadow: focused ? '0 1px 6px rgba(32,33,36,0.28)' : 'none',
+            background: '#fff', transition: 'box-shadow 0.15s',
+          }}>
+            <svg style={{ width: '20px', height: '20px', marginRight: '13px', flexShrink: 0 }} viewBox="0 0 24 24" fill="#9aa0a6">
+              <path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/>
+            </svg>
+            <input
+              type="text"
+              value={query}
+              onChange={e => { setQuery(e.target.value); setError(''); }}
+              onFocus={() => setFocused(true)}
+              onBlur={() => setFocused(false)}
+              autoFocus
+              style={{
+                flex: 1, border: 'none', outline: 'none', fontSize: '16px',
+                fontFamily: 'arial, sans-serif', color: '#202124', background: 'transparent',
+                height: '34px',
+              }}
+            />
+            <svg style={{ width: '24px', height: '24px', marginLeft: '8px', cursor: 'pointer' }} viewBox="0 0 192 192">
+              <rect x="0" fill="none" width="192" height="192"/>
+              <g>
+                <path fill="#4285f4" d="M96 52v60c0 16.5-13.5 30-30 30S36 128.5 36 112V52c0-16.5 13.5-30 30-30s30 13.5 30 30z"/>
+                <path fill="#34a853" d="M156 112c0 33.1-26.9 60-60 60s-60-26.9-60-60h12c0 26.5 21.5 48 48 48s48-21.5 48-48h12z"/>
+                <path fill="#fbbc05" d="M84 172h24v20H84z"/>
+                <path fill="#ea4335" d="M156 112h-12c0-26.5-21.5-48-48-48v-12c33.1 0 60 26.9 60 60z"/>
+              </g>
+            </svg>
+          </div>
+
+          <div style={{ textAlign: 'center', marginTop: '28px' }}>
+            <button type="submit" style={{
+              background: '#f8f9fa', border: '1px solid #f8f9fa', borderRadius: '4px',
+              padding: '0 16px', height: '36px', fontSize: '14px', color: '#3c4043',
+              cursor: 'pointer', marginRight: '12px', fontFamily: 'arial, sans-serif',
             }}
-            placeholder="검색어를 입력하세요"
-          />
+              onMouseEnter={e => { e.currentTarget.style.border = '1px solid #dadce0'; e.currentTarget.style.boxShadow = '0 1px 1px rgba(0,0,0,.1)'; }}
+              onMouseLeave={e => { e.currentTarget.style.border = '1px solid #f8f9fa'; e.currentTarget.style.boxShadow = 'none'; }}
+            >Search 검색</button>
+            <button type="button" onClick={() => { setError('운이 없네요. 다시 시도해보세요.'); setTimeout(() => setError(''), 3000); }} style={{
+              background: '#f8f9fa', border: '1px solid #f8f9fa', borderRadius: '4px',
+              padding: '0 16px', height: '36px', fontSize: '14px', color: '#3c4043',
+              cursor: 'pointer', fontFamily: 'arial, sans-serif',
+            }}
+              onMouseEnter={e => { e.currentTarget.style.border = '1px solid #dadce0'; e.currentTarget.style.boxShadow = '0 1px 1px rgba(0,0,0,.1)'; }}
+              onMouseLeave={e => { e.currentTarget.style.border = '1px solid #f8f9fa'; e.currentTarget.style.boxShadow = 'none'; }}
+            >I'm Feeling Lucky</button>
+          </div>
+        </form>
+
+        <div style={{ marginTop: '20px', fontSize: '13px', color: '#4d5156' }}>
+          제공 언어: <a href="#" onClick={e => e.preventDefault()} style={{ color: '#1a0dab', textDecoration: 'none', marginLeft: '4px' }}>English</a>
+          <a href="#" onClick={e => e.preventDefault()} style={{ color: '#1a0dab', textDecoration: 'none', marginLeft: '12px' }}>日本語</a>
+          <a href="#" onClick={e => e.preventDefault()} style={{ color: '#1a0dab', textDecoration: 'none', marginLeft: '12px' }}>中文</a>
         </div>
 
-        <div style={{ textAlign: 'center', marginTop: '20px' }}>
-          <button type="submit" style={{
-            background: '#f8f9fa', border: '1px solid #f8f9fa', borderRadius: '4px',
-            padding: '8px 16px', fontSize: '14px', color: '#3c4043', cursor: 'pointer',
-            marginRight: '8px',
-          }}>검색</button>
-        </div>
-      </form>
-
-      {error && (
-        <div style={{
-          marginTop: '30px', color: '#ea4335', fontSize: '14px',
-          fontFamily: 'Arial, sans-serif',
-        }}>{error}</div>
-      )}
+        {error && (
+          <div style={{
+            marginTop: '24px', color: '#d93025', fontSize: '14px',
+            background: '#fce8e6', padding: '10px 16px', borderRadius: '4px',
+          }}>{error}</div>
+        )}
+      </div>
 
       <div style={{
-        position: 'fixed', bottom: 0, width: '100%', padding: '16px',
-        background: '#f2f2f2', borderTop: '1px solid #e4e4e4',
-        fontSize: '13px', color: '#70757a', textAlign: 'center',
+        background: '#f2f2f2', borderTop: '1px solid #dadce0',
+        fontSize: '14px', color: '#70757a',
       }}>
-        © 2026 Search Inc.
+        <div style={{ padding: '15px 30px', borderBottom: '1px solid #dadce0' }}>대한민국</div>
+        <div style={{
+          display: 'flex', justifyContent: 'space-between',
+          padding: '0 20px', flexWrap: 'wrap',
+        }}>
+          <div style={{ display: 'flex', gap: '24px', padding: '15px 10px' }}>
+            <a href="#" onClick={e => e.preventDefault()} style={{ color: '#70757a', textDecoration: 'none' }}>광고</a>
+            <a href="#" onClick={e => e.preventDefault()} style={{ color: '#70757a', textDecoration: 'none' }}>비즈니스</a>
+            <a href="#" onClick={e => e.preventDefault()} style={{ color: '#70757a', textDecoration: 'none' }}>검색의 원리</a>
+          </div>
+          <div style={{ display: 'flex', gap: '24px', padding: '15px 10px' }}>
+            <a href="#" onClick={e => e.preventDefault()} style={{ color: '#70757a', textDecoration: 'none' }}>개인정보처리방침</a>
+            <a href="#" onClick={e => e.preventDefault()} style={{ color: '#70757a', textDecoration: 'none' }}>약관</a>
+            <a href="#" onClick={e => e.preventDefault()} style={{ color: '#70757a', textDecoration: 'none' }}>설정</a>
+          </div>
+        </div>
       </div>
     </div>
   );

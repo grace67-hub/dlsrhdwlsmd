@@ -12,98 +12,81 @@ serve(async (req) => {
 
   try {
     const { messages, web_context } = await req.json();
-    const GEMINI_API_KEY = Deno.env.get("AQ.Ab8RN6IK2z607Xe0a7Z0eMfA0HUf2-uJpNDjdtqTHct-O36X7A");
+    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
 
-    if (!GEMINI_API_KEY) {
-      throw new Error("ì„œë¹„ìŠ¤ ì„¤ì •ì´ ì™„ë£Œë˜ì§€ ì•Šì•˜ìŠµë‹ˆë‹¤");
+    if (!LOVABLE_API_KEY) {
+      throw new Error("AI 서비스가 설정되지 않았습니다");
     }
 
-    const systemContent = `ë„ˆëŠ” ìµœê³ ê¸‰ ì •ë³´ íƒìƒ‰ AI ë¹„ì„œì•¼. í•µì‹¬ ê·œì¹™:
+    const systemContent = `너는 최고급 정보 탐색 AI 비서야. 핵심 규칙:
 
-1. ì–´ë–¤ ì§ˆë¬¸ì´ë“  ì—´ë¦° íƒœë„ë¡œ ì†”ì§í•˜ê²Œ ë‹µí•´.
-2. ê°€ë…ì„±ì„ ìœ„í•´ ì¤„ë°”ê¿ˆê³¼ êµ¬ì¡°í™”ë¥¼ ì ê·¹ í™œìš©í•´.
-3. í•œêµ­ì–´ë¡œ ìžì—°ìŠ¤ëŸ½ê²Œ ëŒ€í™”í•´.
-4. ì§§ì€ ì§ˆë¬¸ì—” ì§§ê²Œ, ê¹Šì€ ì§ˆë¬¸ì—” ì²´ê³„ì ìœ¼ë¡œ.
-5. ì •ë³´ì˜ ì •í™•ì„±ì„ ìµœìš°ì„ ìœ¼ë¡œ í•´.
+1. 어떤 질문이든 열린 태도로 솔직하게 답해.
+2. 가독성을 위해 줄바꿈과 구조화를 적극 활용해.
+3. 한국어로 자연스럽게 대화해.
+4. 짧은 질문엔 짧게, 깊은 질문엔 체계적으로.
+5. 정보의 정확성을 최우선으로 해.
 
-**ì´ë¯¸ì§€ ê·œì¹™:**
-- ì„¤ëª…ì— ë„ì›€ì´ ë˜ëŠ” ê²½ìš°, ê´€ë ¨ ì´ë¯¸ì§€ URLì„ í¬í•¨í•´.
-- ì´ë¯¸ì§€ëŠ” ë°˜ë“œì‹œ ì´ í˜•ì‹ìœ¼ë¡œ: ![ì„¤ëª…](https://ì‹¤ì œì´ë¯¸ì§€URL)
-- ìœ„í‚¤í”¼ë””ì•„, ê³µì‹ ì‚¬ì´íŠ¸ ë“±ì—ì„œ ì‹¤ì œ ì¡´ìž¬í•˜ëŠ” ì´ë¯¸ì§€ URLì„ ì‚¬ìš©í•´.
+**이미지 규칙:**
+- 설명에 도움이 되는 경우, 관련 이미지 URL을 포함해.
+- 이미지는 반드시 이 형식으로: ![설명](https://실제이미지URL)
+- 위키피디아, 공식 사이트 등에서 실제 존재하는 이미지 URL을 사용해.
 
-**ì‚¬ì´íŠ¸ ë¯¸ë¦¬ë³´ê¸° ê·œì¹™:**
-- ì°¸ê³ í•  ë§Œí•œ ì‚¬ì´íŠ¸ê°€ ìžˆìœ¼ë©´ ì´ í˜•ì‹ìœ¼ë¡œ ë¯¸ë¦¬ë³´ê¸°ë¥¼ ì œì•ˆí•´:
-  [PREVIEW:https://example.com:ì‚¬ì´íŠ¸ ì„¤ëª…]
+**사이트 미리보기 규칙:**
+- 참고할 만한 사이트가 있으면 이 형식으로 미리보기를 제안해:
+  [PREVIEW:https://example.com:사이트 설명]
 
-**ì¶œì²˜ ê·œì¹™ (ë°˜ë“œì‹œ ì§€ì¼œ):**
-- ëª¨ë“  ë‹µë³€ ëì— ë°˜ë“œì‹œ "---" êµ¬ë¶„ì„ ì„ ë„£ê³  ê·¸ ì•„ëž˜ì— ì¶œì²˜ 1~3ê°œë¥¼ ì œê³µí•´.
-- ì¶œì²˜ í˜•ì‹: ðŸ“Ž ì¶œì²˜ëª… - https://example.com
-- URLì€ ë°˜ë“œì‹œ https:// ë¡œ ì‹œìž‘í•˜ëŠ” ì™„ì „í•œ ë§í¬.
-- ê° ì¶œì²˜ëŠ” ìƒˆ ì¤„ì— í•˜ë‚˜ì”©.
+**출처 규칙 (반드시 지켜):**
+- 모든 답변 끝에 반드시 "---" 구분선을 넣고 그 아래에 출처 1~3개를 제공해.
+- 출처 형식: 📎 출처명 - https://example.com
+- URL은 반드시 https:// 로 시작하는 완전한 링크.
+- 각 출처는 새 줄에 하나씩.
 
-${web_context ? `\n**ì‹¤ì‹œê°„ ì›¹ ê²€ìƒ‰ ê²°ê³¼:**\n${web_context}\nìœ„ ê²€ìƒ‰ ê²°ê³¼ë¥¼ ì°¸ê³ í•´ì„œ ì •í™•í•˜ê³  ìµœì‹  ì •ë³´ë¡œ ë‹µë³€í•´.` : ''}`;
+${web_context ? `\n**실시간 웹 검색 결과:**\n${web_context}\n위 검색 결과를 참고해서 정확하고 최신 정보로 답변해.` : ''}`;
 
-fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:streamGenerateContent?key=${GEMINI_API_KEY}`, {
-  headers: { "Content-Type": "application/json" },
-  body: { contents: messages.map(m=>({role:m.role,parts:[{text:m.content}]})), ... }
-})
+    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${LOVABLE_API_KEY}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: "google/gemini-2.5-flash",
+        messages: [
+          { role: "system", content: systemContent },
+          ...messages,
+        ],
+        stream: true,
+      }),
+    });
 
     if (!response.ok) {
       if (response.status === 429) {
         return new Response(
-          JSON.stringify({ error: "ìž ì‹œ í›„ ë‹¤ì‹œ ì‹œë„í•´ì£¼ì„¸ìš”." }),
+          JSON.stringify({ error: "잠시 후 다시 시도해주세요." }),
           { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
       if (response.status === 402) {
         return new Response(
-          JSON.stringify({ error: "í¬ë ˆë”§ì´ ë¶€ì¡±í•©ë‹ˆë‹¤." }),
+          JSON.stringify({ error: "크레딧이 부족합니다." }),
           { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
       const t = await response.text();
-      console.error("GEMINI API error:", response.status, t);
+      console.error("AI gateway error:", response.status, t);
       return new Response(
-        JSON.stringify({ error: "AI ì‘ë‹µ ì˜¤ë¥˜" }),
+        JSON.stringify({ error: "AI 응답 오류" }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    // Anthropic SSE â†’ OpenAI SSE í˜•ì‹ ë³€í™˜ (í”„ë¡ íŠ¸ì—”ë“œ í˜¸í™˜)
-    const transformStream = new TransformStream({
-      transform(chunk, controller) {
-        const text = new TextDecoder().decode(chunk);
-        const lines = text.split("\n");
-        for (const line of lines) {
-          if (!line.startsWith("data: ")) continue;
-          const jsonStr = line.slice(6).trim();
-          if (!jsonStr) continue;
-          try {
-            const parsed = JSON.parse(jsonStr);
-            if (parsed.type === "content_block_delta" && parsed.delta?.type === "text_delta") {
-              const openAIChunk = {
-                choices: [{ delta: { content: parsed.delta.text } }],
-              };
-              controller.enqueue(
-                new TextEncoder().encode(`data: ${JSON.stringify(openAIChunk)}\n\n`)
-              );
-            } else if (parsed.type === "message_stop") {
-              controller.enqueue(new TextEncoder().encode("data: [DONE]\n\n"));
-            }
-          } catch {
-            // ignore
-          }
-        }
-      },
-    });
-
-    return new Response(response.body!.pipeThrough(transformStream), {
+    return new Response(response.body, {
       headers: { ...corsHeaders, "Content-Type": "text/event-stream" },
     });
   } catch (error) {
     console.error("Error:", error);
     return new Response(
-      JSON.stringify({ error: error instanceof Error ? error.message : "ì˜¤ë¥˜" }),
+      JSON.stringify({ error: error instanceof Error ? error.message : "오류" }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }
