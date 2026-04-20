@@ -324,7 +324,7 @@ const Index = () => {
   useEffect(() => {
     if (appMode !== 'ai') return;
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages, isLoading, systemLines, searchStatus, appMode]);
+  }, [messages, isLoading, systemLines, searchStatus, appMode, agent.messages, agent.isRunning]);
 
   // Click outside menu
   useEffect(() => {
