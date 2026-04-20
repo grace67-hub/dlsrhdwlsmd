@@ -2,6 +2,7 @@ import { useRef, useEffect, useState, KeyboardEvent, useMemo } from 'react';
 import { useChat, Message } from '@/hooks/useChat';
 import { useAuth } from '@/hooks/useAuth';
 import { useConversations } from '@/hooks/useConversations';
+import { useAgent, AgentStep } from '@/hooks/useAgent';
 
 const SECRET_CODE = 'wjddbwnsgv12!!';
 
@@ -232,8 +233,50 @@ const DisguisePage = ({ onUnlock }: { onUnlock: () => void }) => {
   );
 };
 
+const AgentStepRow = ({ step, colors }: { step: AgentStep; colors: any }) => {
+  const base: React.CSSProperties = { padding: '3px 0', color: colors.text, lineHeight: 1.5 };
+  if (step.kind === 'thinking')
+    return <div style={{ ...base, color: colors.dim }}>· 단계 {step.n}: 생각 중...</div>;
+  if (step.kind === 'thought')
+    return <div style={{ ...base, color: colors.dimmer, fontStyle: 'italic' }}>💭 {step.text}</div>;
+  if (step.kind === 'tool_call') {
+    const arg = step.tool === 'web_search' ? step.args.query
+      : step.tool === 'scrape_url' ? step.args.url
+      : step.tool === 'ask_user' ? step.args.question : '';
+    const icon = step.tool === 'web_search' ? '🔍' : step.tool === 'scrape_url' ? '🌐' : step.tool === 'ask_user' ? '❓' : '🔧';
+    return <div style={{ ...base, color: colors.link }}>{icon} {step.tool}: <span style={{ color: colors.text }}>{String(arg).slice(0, 100)}</span></div>;
+  }
+  if (step.kind === 'tool_result') {
+    if (step.result?.error) return <div style={{ ...base, color: '#e55' }}>  ✗ {step.result.error}</div>;
+    if (step.tool === 'web_search') {
+      const n = step.result?.results?.length || 0;
+      return (
+        <div style={{ ...base, color: colors.dim }}>
+          ✓ {n}개 결과
+          {step.result?.results?.slice(0, 3).map((r: any, i: number) => (
+            <div key={i} style={{ marginLeft: '12px', fontSize: '11px' }}>
+              · <a href={r.url} target="_blank" rel="noopener noreferrer" style={{ color: colors.link, textDecoration: 'underline' }}>{r.title?.slice(0, 70)}</a>
+            </div>
+          ))}
+        </div>
+      );
+    }
+    if (step.tool === 'scrape_url') {
+      const len = (step.result?.markdown || '').length;
+      return <div style={{ ...base, color: colors.dim }}>  ✓ {len}자 가져옴 {step.result?.title && `- ${step.result.title.slice(0, 60)}`}</div>;
+    }
+    return <div style={{ ...base, color: colors.dim }}>  ✓ 완료</div>;
+  }
+  if (step.kind === 'error')
+    return <div style={{ ...base, color: '#e55' }}>⚠ {step.message}</div>;
+  if (step.kind === 'ask_user')
+    return <div style={{ ...base, color: '#fcd34d' }}>❓ {step.question}</div>;
+  return null;
+};
+
 const Index = () => {
   const { messages, isLoading, isSearching, searchStatus, sendMessage, clearMessages, setMessages } = useChat();
+  const agent = useAgent();
   const { user, username, loading: authLoading, login, signup, logout } = useAuth();
   const {
     conversations, currentConversationId, loadConversations, createConversation,
@@ -248,6 +291,7 @@ const Index = () => {
   const [showMenu, setShowMenu] = useState(false);
   const [theme, setTheme] = useState<ThemeMode>('dark');
   const [appMode, setAppMode] = useState<AppMode>('disguise');
+  const [agentMode, setAgentMode] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -280,7 +324,7 @@ const Index = () => {
   useEffect(() => {
     if (appMode !== 'ai') return;
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages, isLoading, systemLines, searchStatus, appMode]);
+  }, [messages, isLoading, systemLines, searchStatus, appMode, agent.messages, agent.isRunning]);
 
   // Click outside menu
   useEffect(() => {
@@ -393,9 +437,15 @@ const Index = () => {
     if (e.key === 'Escape') {
       if (inputMode) { setInputMode(null); setInput(''); addSystem('취소'); return; }
     }
-    if (e.key === 'Enter' && input.trim() && !isLoading) {
+    if (e.key === 'Enter' && input.trim() && !isLoading && !agent.isRunning) {
       const val = input.trim(); setInput('');
       if (inputMode) { handleModeInput(val); return; }
+
+      // Agent mode: route to agent
+      if (agentMode) {
+        if (agent.pendingQuestion) { agent.replyToAgent(val); return; }
+        agent.sendMessage(val); return;
+      }
 
       // Check for search commands
       const enableSearch = /검색|찾아줘|찾아봐|실시간|서칭|search/i.test(val);
@@ -518,6 +568,12 @@ const Index = () => {
               onClick={() => { setTheme(p => p === 'dark' ? 'light' : 'dark'); setShowMenu(false); }}>
               {isDark ? '☀ 라이트 모드' : '🌙 다크 모드'}
             </div>
+            <div style={menuItemStyle}
+              onMouseEnter={e => (e.currentTarget.style.background = colors.menuHover)}
+              onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+              onClick={() => { setAgentMode(p => !p); setShowMenu(false); addSystem(agentMode ? '에이전트 모드 OFF' : '🤖 에이전트 모드 ON'); }}>
+              {agentMode ? '✓ 에이전트 모드' : '🤖 에이전트 모드'}
+            </div>
             <div style={{ ...menuItemStyle, borderBottom: 'none', color: '#e55' }}
               onMouseEnter={e => (e.currentTarget.style.background = colors.menuHover)}
               onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
@@ -535,19 +591,17 @@ const Index = () => {
         </div>
       )}
 
-      {messages.map((msg, i) => (
+      {!agentMode && messages.map((msg, i) => (
         <div key={msg.id}>
           {msg.role === 'user' && i > 0 && (
             <div style={{ height: '40px', borderTop: `1px solid ${colors.border}`, marginBottom: '20px' }} />
           )}
-
           {msg.role === 'user' && (
             <div style={{ whiteSpace: 'pre-wrap', marginBottom: '16px' }}>
               <span style={{ color: colors.dim }}>&gt; </span>
               {renderContent(msg.content, colors.link)}
             </div>
           )}
-
           {msg.role === 'assistant' && (
             <div style={{ whiteSpace: 'pre-wrap', marginBottom: '24px', paddingLeft: '8px' }}>
               {renderAssistantContent(msg.content)}
@@ -556,8 +610,55 @@ const Index = () => {
         </div>
       ))}
 
-      {/* Search progress indicator */}
-      {(isSearching || searchStatus) && (
+      {agentMode && agent.messages.map((msg, i) => (
+        <div key={msg.id}>
+          {msg.role === 'user' && i > 0 && (
+            <div style={{ height: '40px', borderTop: `1px solid ${colors.border}`, marginBottom: '20px' }} />
+          )}
+          {msg.role === 'user' && (
+            <div style={{ whiteSpace: 'pre-wrap', marginBottom: '16px' }}>
+              <span style={{ color: colors.dim }}>&gt; </span>
+              {renderContent(msg.content, colors.link)}
+            </div>
+          )}
+          {msg.role === 'assistant' && (
+            <div style={{ marginBottom: '24px', paddingLeft: '8px' }}>
+              {msg.steps && msg.steps.length > 0 && (
+                <div style={{
+                  background: colors.searchBg, border: `1px solid ${colors.searchBorder}`,
+                  borderRadius: '6px', padding: '10px 12px', marginBottom: '12px',
+                  fontSize: '12px', fontFamily: 'monospace',
+                }}>
+                  <div style={{ color: colors.link, marginBottom: '6px', fontWeight: 'bold' }}>
+                    🤖 에이전트 작업 로그
+                  </div>
+                  {msg.steps.map((s, si) => <AgentStepRow key={si} step={s} colors={colors} />)}
+                </div>
+              )}
+              {msg.content && (
+                <div style={{ whiteSpace: 'pre-wrap' }}>
+                  {renderAssistantContent(msg.content)}
+                </div>
+              )}
+              {msg.pendingQuestion && (
+                <div style={{
+                  marginTop: '12px', padding: '10px 12px', borderRadius: '6px',
+                  background: isDark ? '#2a1f0a' : '#fff8e1',
+                  border: `1px solid ${isDark ? '#5c4a1a' : '#fcd34d'}`,
+                  color: isDark ? '#fcd34d' : '#92400e', fontSize: '13px',
+                }}>
+                  ❓ {msg.pendingQuestion}
+                  <div style={{ fontSize: '11px', marginTop: '4px', opacity: 0.7 }}>
+                    아래 입력창에 답변을 입력하세요
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      ))}
+
+      {!agentMode && (isSearching || searchStatus) && (
         <div style={{
           padding: '8px 12px', margin: '8px 0', borderRadius: '6px',
           background: colors.searchBg, border: `1px solid ${colors.searchBorder}`,
@@ -568,8 +669,15 @@ const Index = () => {
         </div>
       )}
 
-      {isLoading && messages[messages.length - 1]?.role === 'user' && !searchStatus && (
+      {!agentMode && isLoading && messages[messages.length - 1]?.role === 'user' && !searchStatus && (
         <div style={{ color: colors.dim, paddingLeft: '8px' }}>...</div>
+      )}
+
+      {agentMode && agent.isRunning && (
+        <div style={{ color: colors.link, paddingLeft: '8px', fontSize: '12px' }}>
+          <span style={{ animation: 'pulse 1.5s infinite' }}>⚙</span> 에이전트 작업 중...
+          <style>{`@keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.4; } }`}</style>
+        </div>
       )}
 
       {systemLines.map((line, i) => (
@@ -578,6 +686,11 @@ const Index = () => {
 
       <div style={{ height: '16px' }} />
       <div style={{ display: 'flex', alignItems: 'center' }}>
+        {agentMode && !inputMode && (
+          <span style={{ color: colors.link, marginRight: '6px', fontSize: '12px' }}>
+            {agent.pendingQuestion ? '[💬 답변]' : '[🤖]'}
+          </span>
+        )}
         {inputMode && <span style={{ color: colors.dim, marginRight: '4px' }}>{
           inputMode === 'login_id' || inputMode === 'signup_id' ? '[아이디]' :
           inputMode === 'login_pw' || inputMode === 'signup_pw' ? '[비밀번호]' :
@@ -585,7 +698,8 @@ const Index = () => {
         }</span>}
         <input ref={inputRef} type={isPasswordMode ? 'password' : 'text'}
           value={input} onChange={e => setInput(e.target.value)} onKeyDown={handleKeyDown}
-          disabled={isLoading && !isSearching} autoFocus spellCheck={false}
+          disabled={(isLoading && !isSearching) || (agentMode && agent.isRunning && !agent.pendingQuestion)}
+          autoFocus spellCheck={false}
           style={{
             background: 'transparent', border: 'none', outline: 'none',
             fontFamily: 'monospace', fontSize: '14px', color: colors.text,
