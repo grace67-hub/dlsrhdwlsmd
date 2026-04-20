@@ -418,7 +418,8 @@ const Index = () => {
         const idx = parseInt(val) - 1;
         if (isNaN(idx) || idx < 0 || idx >= conversations.length) { addSystem('잘못된 번호'); return; }
         const msgs = await loadMessages(conversations[idx].id);
-        setMessages(msgs.map(m => ({ id: m.id, role: m.role as 'user' | 'assistant', content: m.content })));
+        agent.loadHistory(msgs.map(m => ({ id: m.id, role: m.role as 'user' | 'assistant', content: m.content })));
+        setCurrentConversationId(conversations[idx].id);
         addSystem(`"${conversations[idx].title}" 열림`); return;
       }
       case 'delete': {
@@ -426,7 +427,7 @@ const Index = () => {
         const idx = parseInt(val) - 1;
         if (isNaN(idx) || idx < 0 || idx >= conversations.length) { addSystem('잘못된 번호'); return; }
         await deleteConversation(conversations[idx].id);
-        clearMessages(); addSystem('삭제됨'); return;
+        agent.clear(); addSystem('삭제됨'); return;
       }
     }
   };
@@ -435,31 +436,23 @@ const Index = () => {
     if (e.key === 'Escape') {
       if (inputMode) { setInputMode(null); setInput(''); addSystem('취소'); return; }
     }
-    if (e.key === 'Enter' && input.trim() && !isLoading && !agent.isRunning) {
+    if (e.key === 'Enter' && input.trim() && !agent.isRunning) {
       const val = input.trim(); setInput('');
       if (inputMode) { handleModeInput(val); return; }
 
-      // Agent mode: route to agent
-      if (agentMode) {
-        if (agent.pendingQuestion) { agent.replyToAgent(val); return; }
-        agent.sendMessage(val); return;
-      }
+      // Reply to agent if waiting
+      if (agent.pendingQuestion) { agent.replyToAgent(val); return; }
 
-      // Check for search commands
-      const enableSearch = /검색|찾아줘|찾아봐|실시간|서칭|search/i.test(val);
-
+      // Send to agent (always agent mode)
       if (user && !currentConversationId) {
-        createConversation(val.slice(0, 50)).then(cId => { if (cId) sendMessageWithSave(val, cId, enableSearch); }); return;
+        createConversation(val.slice(0, 50)).then(cId => {
+          if (cId && user) saveMessage(cId, 'user', val);
+          agent.sendMessage(val);
+        }); return;
       }
-      sendMessageWithSave(val, currentConversationId, enableSearch);
+      if (currentConversationId && user) saveMessage(currentConversationId, 'user', val);
+      agent.sendMessage(val);
     }
-  };
-
-  const sendMessageWithSave = async (content: string, convId: string | null, enableSearch = false) => {
-    if (convId && user) await saveMessage(convId, 'user', content);
-    await sendMessage(content, async (ac: string) => {
-      if (convId && user) await saveMessage(convId, 'assistant', ac);
-    }, { enableSearch });
   };
 
   if (authLoading) return null;
