@@ -527,6 +527,12 @@ const Index = () => {
               onClick={() => { setTheme(p => p === 'dark' ? 'light' : 'dark'); setShowMenu(false); }}>
               {isDark ? '☀ 라이트 모드' : '🌙 다크 모드'}
             </div>
+            <div style={menuItemStyle}
+              onMouseEnter={e => (e.currentTarget.style.background = colors.menuHover)}
+              onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+              onClick={() => { setAgentMode(p => !p); setShowMenu(false); addSystem(agentMode ? '에이전트 모드 OFF' : '🤖 에이전트 모드 ON'); }}>
+              {agentMode ? '✓ 에이전트 모드' : '🤖 에이전트 모드'}
+            </div>
             <div style={{ ...menuItemStyle, borderBottom: 'none', color: '#e55' }}
               onMouseEnter={e => (e.currentTarget.style.background = colors.menuHover)}
               onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
