@@ -686,6 +686,11 @@ const Index = () => {
 
       <div style={{ height: '16px' }} />
       <div style={{ display: 'flex', alignItems: 'center' }}>
+        {agentMode && !inputMode && (
+          <span style={{ color: colors.link, marginRight: '6px', fontSize: '12px' }}>
+            {agent.pendingQuestion ? '[💬 답변]' : '[🤖]'}
+          </span>
+        )}
         {inputMode && <span style={{ color: colors.dim, marginRight: '4px' }}>{
           inputMode === 'login_id' || inputMode === 'signup_id' ? '[아이디]' :
           inputMode === 'login_pw' || inputMode === 'signup_pw' ? '[비밀번호]' :
@@ -693,7 +698,8 @@ const Index = () => {
         }</span>}
         <input ref={inputRef} type={isPasswordMode ? 'password' : 'text'}
           value={input} onChange={e => setInput(e.target.value)} onKeyDown={handleKeyDown}
-          disabled={isLoading && !isSearching} autoFocus spellCheck={false}
+          disabled={(isLoading && !isSearching) || (agentMode && agent.isRunning && !agent.pendingQuestion)}
+          autoFocus spellCheck={false}
           style={{
             background: 'transparent', border: 'none', outline: 'none',
             fontFamily: 'monospace', fontSize: '14px', color: colors.text,
