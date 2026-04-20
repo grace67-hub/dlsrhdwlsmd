@@ -396,9 +396,15 @@ const Index = () => {
     if (e.key === 'Escape') {
       if (inputMode) { setInputMode(null); setInput(''); addSystem('취소'); return; }
     }
-    if (e.key === 'Enter' && input.trim() && !isLoading) {
+    if (e.key === 'Enter' && input.trim() && !isLoading && !agent.isRunning) {
       const val = input.trim(); setInput('');
       if (inputMode) { handleModeInput(val); return; }
+
+      // Agent mode: route to agent
+      if (agentMode) {
+        if (agent.pendingQuestion) { agent.replyToAgent(val); return; }
+        agent.sendMessage(val); return;
+      }
 
       // Check for search commands
       const enableSearch = /검색|찾아줘|찾아봐|실시간|서칭|search/i.test(val);
