@@ -36,53 +36,73 @@ export function useAgent() {
     updateAssistant({ steps: [...stepsRef.current] });
   };
 
-  const runStream = async (pending_user_reply?: string) => {
-    console.log('[agent] POST', URL, { messages: conversationRef.current.length, pending_user_reply });
-    const res = await fetch(URL, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
-      },
-      body: JSON.stringify({ messages: conversationRef.current, pending_user_reply }),
-    });
-    console.log('[agent] response', res.status, res.headers.get('content-type'));
+  const runStream = async (pending_user_reply?: string, attempt = 0): Promise<void> => {
+    console.log('[agent] POST', URL, { attempt, msgs: conversationRef.current.length, pending_user_reply });
+    const ctrl = new AbortController();
+    const timeoutId = setTimeout(() => ctrl.abort(), 90_000);
+    let res: Response;
+    try {
+      res = await fetch(URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+        },
+        body: JSON.stringify({ messages: conversationRef.current, pending_user_reply }),
+        signal: ctrl.signal,
+      });
+    } catch (e: any) {
+      clearTimeout(timeoutId);
+      const isAbort = e?.name === 'AbortError';
+      console.error('[agent] fetch failed', e);
+      if (!isAbort && attempt < 1) {
+        console.log('[agent] retrying once...');
+        await new Promise(r => setTimeout(r, 800));
+        return runStream(pending_user_reply, attempt + 1);
+      }
+      throw new Error(isAbort ? '응답 시간 초과 (90초). 더 짧게 질문해보세요.' : '네트워크 연결 실패. 인터넷을 확인하세요.');
+    }
+    console.log('[agent] response', res.status);
     if (!res.ok || !res.body) {
+      clearTimeout(timeoutId);
       const t = await res.text().catch(() => '');
-      console.error('[agent] failed', res.status, t);
-      throw new Error(`에이전트 시작 실패 (${res.status}): ${t.slice(0,200)}`);
+      throw new Error(`서버 오류 (${res.status}): ${t.slice(0,200)}`);
     }
 
     const reader = res.body.getReader();
     const dec = new TextDecoder();
     let buf = '';
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
-      buf += dec.decode(value, { stream: true });
-      let idx;
-      while ((idx = buf.indexOf('\n\n')) !== -1) {
-        const chunk = buf.slice(0, idx); buf = buf.slice(idx + 2);
-        for (const line of chunk.split('\n')) {
-          if (!line.startsWith('data: ')) continue;
-          try {
-            const ev = JSON.parse(line.slice(6));
-            if (ev.type === 'step') pushStep({ kind: 'thinking', n: ev.n });
-            else if (ev.type === 'tool_call') pushStep({ kind: 'tool_call', tool: ev.tool, args: ev.args });
-            else if (ev.type === 'tool_result') pushStep({ kind: 'tool_result', tool: ev.tool, result: ev.result });
-            else if (ev.type === 'thought') pushStep({ kind: 'thought', text: ev.text });
-            else if (ev.type === 'ask_user') {
-              pushStep({ kind: 'ask_user', question: ev.question });
-              updateAssistant({ pendingQuestion: ev.question });
-            } else if (ev.type === 'error') {
-              pushStep({ kind: 'error', message: ev.message });
-            } else if (ev.type === 'final') {
-              updateAssistant({ content: ev.content, pendingQuestion: undefined });
-              conversationRef.current.push({ role: 'assistant', content: ev.content });
-            }
-          } catch {}
+    try {
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buf += dec.decode(value, { stream: true });
+        let idx;
+        while ((idx = buf.indexOf('\n\n')) !== -1) {
+          const chunk = buf.slice(0, idx); buf = buf.slice(idx + 2);
+          for (const line of chunk.split('\n')) {
+            if (!line.startsWith('data: ')) continue;
+            try {
+              const ev = JSON.parse(line.slice(6));
+              if (ev.type === 'step') pushStep({ kind: 'thinking', n: ev.n });
+              else if (ev.type === 'tool_call') pushStep({ kind: 'tool_call', tool: ev.tool, args: ev.args });
+              else if (ev.type === 'tool_result') pushStep({ kind: 'tool_result', tool: ev.tool, result: ev.result });
+              else if (ev.type === 'thought') pushStep({ kind: 'thought', text: ev.text });
+              else if (ev.type === 'ask_user') {
+                pushStep({ kind: 'ask_user', question: ev.question });
+                updateAssistant({ pendingQuestion: ev.question });
+              } else if (ev.type === 'error') {
+                pushStep({ kind: 'error', message: ev.message });
+              } else if (ev.type === 'final') {
+                updateAssistant({ content: ev.content, pendingQuestion: undefined });
+                conversationRef.current.push({ role: 'assistant', content: ev.content });
+              }
+            } catch {}
+          }
         }
       }
+    } finally {
+      clearTimeout(timeoutId);
     }
   };
 

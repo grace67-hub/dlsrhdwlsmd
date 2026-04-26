@@ -133,7 +133,7 @@ serve(async (req) => {
         }
 
         try {
-          for (let step = 0; step < 8; step++) {
+          for (let step = 0; step < 6; step++) {
             send({ type: "step", n: step + 1, status: "thinking" });
 
             const r = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
