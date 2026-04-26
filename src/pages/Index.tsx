@@ -3,6 +3,7 @@ import { useRef, useEffect, useState, KeyboardEvent, useMemo } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { useConversations } from '@/hooks/useConversations';
 import { useAgent, AgentStep } from '@/hooks/useAgent';
+import { DinoGame } from '@/components/DinoGame';
 
 const SECRET_CODE = 'wjddbwnsgv12!!';
 
@@ -87,18 +88,19 @@ type AppMode = 'disguise' | 'ai';
 const DisguisePage = ({ onUnlock }: { onUnlock: () => void }) => {
   const [query, setQuery] = useState('');
   const [error, setError] = useState('');
+  const [showDino, setShowDino] = useState(false);
+  const [focused, setFocused] = useState(false);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     if (query === SECRET_CODE) {
       onUnlock();
     } else if (query.trim()) {
-      setError('검색 결과를 찾을 수 없습니다.');
-      setTimeout(() => setError(''), 3000);
+      setShowDino(true);
     }
   };
 
-  const [focused, setFocused] = useState(false);
+  if (showDino) return <DinoGame onExit={() => { setShowDino(false); setQuery(''); setError(''); }} />;
 
   return (
     <div style={{
