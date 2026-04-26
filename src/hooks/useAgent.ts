@@ -36,6 +36,7 @@ export function useAgent() {
   };
 
   const runStream = async (pending_user_reply?: string) => {
+    console.log('[agent] POST', URL, { messages: conversationRef.current.length, pending_user_reply });
     const res = await fetch(URL, {
       method: 'POST',
       headers: {
@@ -44,7 +45,12 @@ export function useAgent() {
       },
       body: JSON.stringify({ messages: conversationRef.current, pending_user_reply }),
     });
-    if (!res.ok || !res.body) throw new Error('에이전트 시작 실패');
+    console.log('[agent] response', res.status, res.headers.get('content-type'));
+    if (!res.ok || !res.body) {
+      const t = await res.text().catch(() => '');
+      console.error('[agent] failed', res.status, t);
+      throw new Error(`에이전트 시작 실패 (${res.status}): ${t.slice(0,200)}`);
+    }
 
     const reader = res.body.getReader();
     const dec = new TextDecoder();
