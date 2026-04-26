@@ -88,16 +88,18 @@ type AppMode = 'disguise' | 'ai';
 const DisguisePage = ({ onUnlock }: { onUnlock: () => void }) => {
   const [query, setQuery] = useState('');
   const [error, setError] = useState('');
+  const [showDino, setShowDino] = useState(false);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     if (query === SECRET_CODE) {
       onUnlock();
     } else if (query.trim()) {
-      setError('검색 결과를 찾을 수 없습니다.');
-      setTimeout(() => setError(''), 3000);
+      setShowDino(true);
     }
   };
+
+  if (showDino) return <DinoGame onExit={() => { setShowDino(false); setQuery(''); setError(''); }} />;
 
   const [focused, setFocused] = useState(false);
 
