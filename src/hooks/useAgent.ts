@@ -17,6 +17,7 @@ export interface AgentMessage {
   pendingQuestion?: string;
 }
 
+// build: force redeploy
 const URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/agent`;
 
 export function useAgent() {
