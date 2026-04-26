@@ -3,6 +3,7 @@ import { useRef, useEffect, useState, KeyboardEvent, useMemo } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { useConversations } from '@/hooks/useConversations';
 import { useAgent, AgentStep } from '@/hooks/useAgent';
+import { DinoGame } from '@/components/DinoGame';
 
 const SECRET_CODE = 'wjddbwnsgv12!!';
 
