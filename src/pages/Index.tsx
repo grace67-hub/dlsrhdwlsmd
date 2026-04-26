@@ -89,6 +89,7 @@ const DisguisePage = ({ onUnlock }: { onUnlock: () => void }) => {
   const [query, setQuery] = useState('');
   const [error, setError] = useState('');
   const [showDino, setShowDino] = useState(false);
+  const [focused, setFocused] = useState(false);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -100,8 +101,6 @@ const DisguisePage = ({ onUnlock }: { onUnlock: () => void }) => {
   };
 
   if (showDino) return <DinoGame onExit={() => { setShowDino(false); setQuery(''); setError(''); }} />;
-
-  const [focused, setFocused] = useState(false);
 
   return (
     <div style={{
