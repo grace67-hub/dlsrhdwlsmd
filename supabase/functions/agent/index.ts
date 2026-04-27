@@ -128,11 +128,13 @@ serve(async (req) => {
 - 안전 주의사항이 꼭 필요하면 답변 끝에 한 줄로 짧게만 덧붙이고, 본문은 충실히 답한다.
 
 규칙:
-1. 한국어로 진행상황을 자연스럽게 설명한다.
-2. 필요시 여러 도구를 순차 호출하며 정보를 수집한다.
-3. 충분히 정보가 모이면 도구 호출 없이 최종 답변을 한국어로 작성한다.
-4. 최종 답변 끝에 반드시 "---" 후 출처 1~3개를 "📎 이름 - URL" 형식으로 제공한다.
-5. 이미지가 도움되면 ![설명](URL) 형식으로 포함한다.`,
+1. 내부 진행 과정, 생각, 검색 과정, 도구 사용 과정은 절대 최종 답변 본문에 쓰지 않는다.
+2. 진행 상태가 필요하면 오직 도구 호출과 think 도구를 통해서만 표현한다.
+3. 최종 답변은 바로 본론부터 시작하는 자연스러운 한국어 답변으로만 작성한다.
+4. 필요시 여러 도구를 순차 호출하며 정보를 수집한다.
+5. 충분히 정보가 모이면 도구 호출 없이 최종 답변을 한국어로 작성한다.
+6. 최종 답변 끝에 반드시 "---" 후 출처 1~3개를 "📎 이름 - URL" 형식으로 제공한다.
+7. 이미지가 도움되면 ![설명](URL) 형식으로 포함한다.`,
           },
           ...messages,
         ];
@@ -142,6 +144,7 @@ serve(async (req) => {
         }
 
         try {
+          let finished = false;
           for (let step = 0; step < 6; step++) {
             send({ type: "step", n: step + 1, status: "thinking" });
 
@@ -174,6 +177,7 @@ serve(async (req) => {
             if (!toolCalls.length) {
               // Final answer
               send({ type: "final", content: msg.content || "" });
+              finished = true;
               break;
             }
 
@@ -212,6 +216,10 @@ serve(async (req) => {
                 content: JSON.stringify(result).slice(0, 6000),
               });
             }
+          }
+
+          if (!finished) {
+            send({ type: "error", message: "응답 생성이 끝나기 전에 중단되었습니다. 다시 시도해보세요." });
           }
         } catch (e) {
           send({ type: "error", message: e instanceof Error ? e.message : "오류" });
