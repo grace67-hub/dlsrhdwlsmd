@@ -17,7 +17,6 @@ export interface AgentMessage {
   pendingQuestion?: string;
 }
 
-// build: force redeploy
 const URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/agent`;
 
 export function useAgent() {
@@ -36,11 +35,17 @@ export function useAgent() {
     updateAssistant({ steps: [...stepsRef.current] });
   };
 
+  const showAssistantError = (message: string) => {
+    updateAssistant({ content: `오류: ${message}`, pendingQuestion: undefined });
+  };
+
   const runStream = async (pending_user_reply?: string, attempt = 0): Promise<void> => {
     console.log('[agent] POST', URL, { attempt, msgs: conversationRef.current.length, pending_user_reply });
+
     const ctrl = new AbortController();
     const timeoutId = setTimeout(() => ctrl.abort(), 90_000);
     let res: Response;
+
     try {
       res = await fetch(URL, {
         method: 'POST',
@@ -62,52 +67,119 @@ export function useAgent() {
       }
       throw new Error(isAbort ? '응답 시간 초과 (90초). 더 짧게 질문해보세요.' : '네트워크 연결 실패. 인터넷을 확인하세요.');
     }
+
     console.log('[agent] response', res.status);
     if (!res.ok || !res.body) {
       clearTimeout(timeoutId);
       const t = await res.text().catch(() => '');
-      throw new Error(`서버 오류 (${res.status}): ${t.slice(0,200)}`);
+      throw new Error(`서버 오류 (${res.status}): ${t.slice(0, 200)}`);
     }
 
     const reader = res.body.getReader();
     const dec = new TextDecoder();
-    let buf = '';
+    let textBuffer = '';
+    let gotAnyEvent = false;
+    let gotTerminalEvent = false;
+    let finalContent = '';
+    let streamError = '';
+
+    const handleEvent = (ev: any) => {
+      gotAnyEvent = true;
+
+      if (ev.type === 'step') {
+        pushStep({ kind: 'thinking', n: ev.n });
+        return;
+      }
+      if (ev.type === 'tool_call') {
+        pushStep({ kind: 'tool_call', tool: ev.tool, args: ev.args });
+        return;
+      }
+      if (ev.type === 'tool_result') {
+        pushStep({ kind: 'tool_result', tool: ev.tool, result: ev.result });
+        return;
+      }
+      if (ev.type === 'thought') {
+        pushStep({ kind: 'thought', text: ev.text });
+        return;
+      }
+      if (ev.type === 'ask_user') {
+        gotTerminalEvent = true;
+        pushStep({ kind: 'ask_user', question: ev.question });
+        updateAssistant({ pendingQuestion: ev.question });
+        return;
+      }
+      if (ev.type === 'error') {
+        streamError = ev.message || '알 수 없는 오류';
+        pushStep({ kind: 'error', message: streamError });
+        return;
+      }
+      if (ev.type === 'final') {
+        gotTerminalEvent = true;
+        finalContent = typeof ev.content === 'string' ? ev.content : '';
+        updateAssistant({ content: finalContent, pendingQuestion: undefined });
+        conversationRef.current.push({ role: 'assistant', content: finalContent });
+      }
+    };
+
     try {
       while (true) {
         const { done, value } = await reader.read();
         if (done) break;
-        buf += dec.decode(value, { stream: true });
-        let idx;
-        while ((idx = buf.indexOf('\n\n')) !== -1) {
-          const chunk = buf.slice(0, idx); buf = buf.slice(idx + 2);
-          for (const line of chunk.split('\n')) {
-            if (!line.startsWith('data: ')) continue;
-            try {
-              const ev = JSON.parse(line.slice(6));
-              if (ev.type === 'step') pushStep({ kind: 'thinking', n: ev.n });
-              else if (ev.type === 'tool_call') pushStep({ kind: 'tool_call', tool: ev.tool, args: ev.args });
-              else if (ev.type === 'tool_result') pushStep({ kind: 'tool_result', tool: ev.tool, result: ev.result });
-              else if (ev.type === 'thought') pushStep({ kind: 'thought', text: ev.text });
-              else if (ev.type === 'ask_user') {
-                pushStep({ kind: 'ask_user', question: ev.question });
-                updateAssistant({ pendingQuestion: ev.question });
-              } else if (ev.type === 'error') {
-                pushStep({ kind: 'error', message: ev.message });
-              } else if (ev.type === 'final') {
-                updateAssistant({ content: ev.content, pendingQuestion: undefined });
-                conversationRef.current.push({ role: 'assistant', content: ev.content });
-              }
-            } catch {}
+
+        textBuffer += dec.decode(value, { stream: true });
+
+        let newlineIndex: number;
+        while ((newlineIndex = textBuffer.indexOf('\n')) !== -1) {
+          let line = textBuffer.slice(0, newlineIndex);
+          textBuffer = textBuffer.slice(newlineIndex + 1);
+
+          if (line.endsWith('\r')) line = line.slice(0, -1);
+          if (line.startsWith(':') || line.trim() === '') continue;
+          if (!line.startsWith('data: ')) continue;
+
+          const jsonStr = line.slice(6).trim();
+          if (jsonStr === '[DONE]') {
+            gotTerminalEvent = true;
+            continue;
+          }
+
+          try {
+            handleEvent(JSON.parse(jsonStr));
+          } catch {
+            textBuffer = `${line}\n${textBuffer}`;
+            break;
+          }
+        }
+      }
+
+      const flushed = dec.decode();
+      if (flushed) textBuffer += flushed;
+
+      if (textBuffer.trim()) {
+        for (let raw of textBuffer.split('\n')) {
+          if (raw.endsWith('\r')) raw = raw.slice(0, -1);
+          if (raw.startsWith(':') || raw.trim() === '' || !raw.startsWith('data: ')) continue;
+          const jsonStr = raw.slice(6).trim();
+          if (jsonStr === '[DONE]') continue;
+          try {
+            handleEvent(JSON.parse(jsonStr));
+          } catch {
+            console.warn('[agent] leftover parse skipped', raw);
           }
         }
       }
     } finally {
       clearTimeout(timeoutId);
     }
+
+    if (streamError) throw new Error(streamError);
+    if (!gotAnyEvent) throw new Error('응답을 받지 못했습니다. 다시 시도해보세요.');
+    if (!gotTerminalEvent && !finalContent) throw new Error('응답이 중간에 끊겼습니다. 다시 시도해보세요.');
   };
 
   const sendMessage = useCallback(async (content: string) => {
     if (!content.trim() || isRunning) return;
+
     const userMsg: AgentMessage = { id: crypto.randomUUID(), role: 'user', content };
     const aId = crypto.randomUUID();
     currentAssistantId.current = aId;
@@ -115,24 +187,39 @@ export function useAgent() {
     conversationRef.current.push({ role: 'user', content });
     setMessages(prev => [...prev, userMsg, { id: aId, role: 'assistant', content: '', steps: [] }]);
     setIsRunning(true);
-    try { await runStream(); }
-    catch (e) {
-      toast({ variant: 'destructive', title: '오류', description: e instanceof Error ? e.message : '오류' });
-    } finally { setIsRunning(false); }
+
+    try {
+      await runStream();
+    } catch (e) {
+      const message = e instanceof Error ? e.message : '오류';
+      showAssistantError(message);
+      toast({ variant: 'destructive', title: '오류', description: message });
+    } finally {
+      setIsRunning(false);
+    }
   }, [isRunning]);
 
   const replyToAgent = useCallback(async (reply: string) => {
     if (!reply.trim() || isRunning) return;
+
     updateAssistant({ pendingQuestion: undefined });
     setIsRunning(true);
-    try { await runStream(reply); }
-    catch (e) {
-      toast({ variant: 'destructive', title: '에이전트 오류', description: e instanceof Error ? e.message : '오류' });
-    } finally { setIsRunning(false); }
+
+    try {
+      await runStream(reply);
+    } catch (e) {
+      const message = e instanceof Error ? e.message : '오류';
+      showAssistantError(message);
+      toast({ variant: 'destructive', title: '에이전트 오류', description: message });
+    } finally {
+      setIsRunning(false);
+    }
   }, [isRunning]);
 
   const clear = useCallback(() => {
-    setMessages([]); conversationRef.current = []; stepsRef.current = [];
+    setMessages([]);
+    conversationRef.current = [];
+    stepsRef.current = [];
   }, []);
 
   const loadHistory = useCallback((msgs: AgentMessage[]) => {

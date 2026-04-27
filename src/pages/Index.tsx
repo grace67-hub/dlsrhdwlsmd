@@ -236,43 +236,33 @@ const DisguisePage = ({ onUnlock }: { onUnlock: () => void }) => {
 };
 
 const AgentStepRow = ({ step, colors }: { step: AgentStep; colors: any }) => {
-  const base: React.CSSProperties = { padding: '3px 0', color: colors.text, lineHeight: 1.5 };
-  if (step.kind === 'thinking')
-    return <div style={{ ...base, color: colors.dim }}>· 단계 {step.n}: 생각 중...</div>;
-  if (step.kind === 'thought')
-    return <div style={{ ...base, color: colors.dimmer, fontStyle: 'italic' }}>  생각: {step.text}</div>;
+  const base: React.CSSProperties = { padding: '2px 0', color: colors.text, lineHeight: 1.5 };
+  if (step.kind === 'thinking') return <div style={{ ...base, color: colors.dim }}>· 생각 중...</div>;
+  if (step.kind === 'thought') return <div style={{ ...base, color: colors.dimmer }}>· {step.text}</div>;
   if (step.kind === 'tool_call') {
     const arg = step.tool === 'web_search' ? step.args.query
       : step.tool === 'scrape_url' ? step.args.url
       : step.tool === 'ask_user' ? step.args.question : '';
-    const label = step.tool === 'web_search' ? '검색' : step.tool === 'scrape_url' ? '페이지 열기' : step.tool === 'ask_user' ? '질문' : step.tool;
-    return <div style={{ ...base, color: colors.link }}>&gt; {label}: <span style={{ color: colors.text }}>{String(arg).slice(0, 100)}</span></div>;
+    const label = step.tool === 'web_search' ? '검색 중'
+      : step.tool === 'scrape_url' ? '페이지 확인 중'
+      : step.tool === 'ask_user' ? '질문 준비 중'
+      : '처리 중';
+    return <div style={{ ...base, color: colors.dim }}>{label}: <span style={{ color: colors.text }}>{String(arg).slice(0, 100)}</span></div>;
   }
   if (step.kind === 'tool_result') {
-    if (step.result?.error) return <div style={{ ...base, color: '#e55' }}>  실패: {step.result.error}</div>;
+    if (step.result?.error) return <div style={{ ...base, color: '#e55' }}>실패: {step.result.error}</div>;
     if (step.tool === 'web_search') {
       const n = step.result?.results?.length || 0;
-      return (
-        <div style={{ ...base, color: colors.dim }}>
-          {n}개 결과
-          {step.result?.results?.slice(0, 3).map((r: any, i: number) => (
-            <div key={i} style={{ marginLeft: '12px', fontSize: '11px' }}>
-              · <a href={r.url} target="_blank" rel="noopener noreferrer" style={{ color: colors.link, textDecoration: 'underline' }}>{r.title?.slice(0, 70)}</a>
-            </div>
-          ))}
-        </div>
-      );
+      return <div style={{ ...base, color: colors.dim }}>검색 결과 {n}개 확인</div>;
     }
     if (step.tool === 'scrape_url') {
       const len = (step.result?.markdown || '').length;
-      return <div style={{ ...base, color: colors.dim }}>  {len}자 가져옴 {step.result?.title && `- ${step.result.title.slice(0, 60)}`}</div>;
+      return <div style={{ ...base, color: colors.dim }}>페이지 내용 {len}자 확인</div>;
     }
-    return <div style={{ ...base, color: colors.dim }}>  완료</div>;
+    return <div style={{ ...base, color: colors.dim }}>완료</div>;
   }
-  if (step.kind === 'error')
-    return <div style={{ ...base, color: '#e55' }}>오류: {step.message}</div>;
-  if (step.kind === 'ask_user')
-    return <div style={{ ...base, color: '#fcd34d' }}>질문: {step.question}</div>;
+  if (step.kind === 'error') return <div style={{ ...base, color: '#e55' }}>오류: {step.message}</div>;
+  if (step.kind === 'ask_user') return <div style={{ ...base, color: '#fcd34d' }}>추가 질문: {step.question}</div>;
   return null;
 };
 
@@ -434,26 +424,32 @@ const Index = () => {
     }
   };
 
-  const handleKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
+  const handleKeyDown = async (e: KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Escape') {
       if (inputMode) { setInputMode(null); setInput(''); addSystem('취소'); return; }
     }
     if (e.key === 'Enter' && input.trim() && !agent.isRunning) {
       const val = input.trim(); setInput('');
-      if (inputMode) { handleModeInput(val); return; }
+      if (inputMode) { await handleModeInput(val); return; }
 
       // Reply to agent if waiting
-      if (agent.pendingQuestion) { agent.replyToAgent(val); return; }
+      if (agent.pendingQuestion) { await agent.replyToAgent(val); return; }
 
       // Send to agent (always agent mode)
       if (user && !currentConversationId) {
-        createConversation(val.slice(0, 50)).then(cId => {
-          if (cId && user) saveMessage(cId, 'user', val);
-          agent.sendMessage(val);
-        }); return;
+        const cId = await createConversation(val.slice(0, 50));
+        if (cId) {
+          await saveMessage(cId, 'user', val);
+        } else {
+          addSystem('대화 저장 없이 임시로 전송');
+        }
+        await agent.sendMessage(val);
+        return;
       }
-      if (currentConversationId && user) saveMessage(currentConversationId, 'user', val);
-      agent.sendMessage(val);
+      if (currentConversationId && user) {
+        await saveMessage(currentConversationId, 'user', val);
+      }
+      await agent.sendMessage(val);
     }
   };
 
