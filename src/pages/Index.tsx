@@ -577,89 +577,73 @@ const Index = () => {
         </div>
       )}
 
-      {agent.messages.map((msg, i) => (
-        <div key={msg.id}>
-          {msg.role === 'user' && i > 0 && (
-            <div style={{ height: '40px', borderTop: `1px solid ${colors.border}`, marginBottom: '20px' }} />
-          )}
-          {msg.role === 'user' && (
-            <div style={{ whiteSpace: 'pre-wrap', marginBottom: '16px' }}>
-              <span style={{ color: colors.dim }}>&gt; </span>
-              {renderContent(msg.content, colors.link)}
-            </div>
-          )}
-          {msg.role === 'assistant' && (
-            <div style={{ marginBottom: '24px', paddingLeft: '8px' }}>
-              {msg.steps && msg.steps.length > 0 && (
-                <div style={{
-                  background: colors.searchBg, border: `1px solid ${colors.searchBorder}`,
-                  borderRadius: '6px', padding: '10px 12px', marginBottom: '12px',
-                  fontSize: '12px', fontFamily: 'monospace',
-                }}>
-                  <div style={{ color: colors.link, marginBottom: '6px', fontWeight: 'bold' }}>
-                    작업 과정
+      <div style={{ maxWidth: '900px', margin: '0 auto' }}>
+        {agent.messages.map((msg, i) => (
+          <div key={msg.id} style={{ marginBottom: '20px' }}>
+            {msg.role === 'user' && i > 0 && (
+              <div style={{ height: '24px' }} />
+            )}
+            {msg.role === 'user' && (
+              <div style={{ whiteSpace: 'pre-wrap', marginBottom: '12px', wordBreak: 'break-word' }}>
+                <span style={{ color: colors.dim }}>&gt; </span>
+                {renderContent(msg.content, colors.link)}
+              </div>
+            )}
+            {msg.role === 'assistant' && (
+              <div style={{ wordBreak: 'break-word', overflowWrap: 'anywhere' }}>
+                {msg.steps && msg.steps.length > 0 && !msg.content && (
+                  <div style={{ fontSize: '12px', color: colors.dim, marginBottom: '8px' }}>
+                    {msg.steps.map((s, si) => <AgentStepRow key={si} step={s} colors={colors} />)}
                   </div>
-                  {msg.steps.map((s, si) => <AgentStepRow key={si} step={s} colors={colors} />)}
-                </div>
-              )}
-              {msg.content && (
-                <div style={{ whiteSpace: 'pre-wrap' }}>
-                  {renderAssistantContent(msg.content)}
-                </div>
-              )}
-              {msg.pendingQuestion && (
-                <div style={{
-                  marginTop: '12px', padding: '10px 12px', borderRadius: '6px',
-                  background: isDark ? '#2a1f0a' : '#fff8e1',
-                  border: `1px solid ${isDark ? '#5c4a1a' : '#fcd34d'}`,
-                  color: isDark ? '#fcd34d' : '#92400e', fontSize: '13px',
-                }}>
-                  질문: {msg.pendingQuestion}
-                  <div style={{ fontSize: '11px', marginTop: '4px', opacity: 0.7 }}>
-                    아래 입력창에 답변을 입력하세요
+                )}
+                {msg.content && (
+                  <div style={{ whiteSpace: 'pre-wrap' }}>
+                    {renderAssistantContent(msg.content)}
                   </div>
-                </div>
-              )}
-            </div>
-          )}
-        </div>
-      ))}
+                )}
+                {msg.pendingQuestion && (
+                  <div style={{ marginTop: '8px', color: colors.link, fontSize: '13px' }}>
+                    ? {msg.pendingQuestion}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        ))}
 
-      {agent.isRunning && (
-        <div style={{ color: colors.link, paddingLeft: '8px', fontSize: '12px' }}>
-          <span style={{ animation: 'pulse 1.5s infinite' }}>·</span> 작업 중...
-          <style>{`@keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.4; } }`}</style>
-        </div>
-      )}
-
-      {systemLines.map((line, i) => (
-        <div key={i} style={{ color: colors.system, whiteSpace: 'pre-wrap' }}>{line}</div>
-      ))}
-
-      <div style={{ height: '16px' }} />
-      <div style={{ display: 'flex', alignItems: 'center' }}>
-        {!inputMode && agent.pendingQuestion && (
-          <span style={{ color: colors.link, marginRight: '6px', fontSize: '12px' }}>
-            [답변]
-          </span>
+        {agent.isRunning && (
+          <div style={{ color: colors.dim, fontSize: '12px', marginBottom: '12px' }}>
+            <span style={{ animation: 'pulse 1.5s infinite' }}>·</span> 작업 중...
+            <style>{`@keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.4; } }`}</style>
+          </div>
         )}
-        {inputMode && <span style={{ color: colors.dim, marginRight: '4px' }}>{
-          inputMode === 'login_id' || inputMode === 'signup_id' ? '[아이디]' :
-          inputMode === 'login_pw' || inputMode === 'signup_pw' ? '[비밀번호]' :
-          inputMode === 'open' ? '[번호]' : '[번호]'
-        }</span>}
-        <input ref={inputRef} type={isPasswordMode ? 'password' : 'text'}
-          value={input} onChange={e => setInput(e.target.value)} onKeyDown={handleKeyDown}
-          disabled={agent.isRunning && !agent.pendingQuestion}
-          autoFocus spellCheck={false}
-          style={{
-            background: 'transparent', border: 'none', outline: 'none',
-            fontFamily: 'monospace', fontSize: '14px', color: colors.text,
-            width: '100%', padding: 0, margin: 0, caretColor: colors.dim,
-          }}
-        />
+
+        {systemLines.map((line, i) => (
+          <div key={i} style={{ color: colors.system, whiteSpace: 'pre-wrap', fontSize: '12px' }}>{line}</div>
+        ))}
+
+        <div style={{ height: '12px' }} />
+        <div style={{ display: 'flex', alignItems: 'center' }}>
+          <span style={{ color: colors.dim, marginRight: '6px' }}>&gt;</span>
+          <input ref={inputRef} type={isPasswordMode ? 'password' : 'text'}
+            value={input} onChange={e => setInput(e.target.value)} onKeyDown={handleKeyDown}
+            disabled={agent.isRunning && !agent.pendingQuestion}
+            autoFocus spellCheck={false}
+            placeholder={
+              inputMode === 'login_id' || inputMode === 'signup_id' ? '아이디' :
+              inputMode === 'login_pw' || inputMode === 'signup_pw' ? '비밀번호' :
+              inputMode === 'open' || inputMode === 'delete' ? '번호' :
+              agent.pendingQuestion ? '답변' : ''
+            }
+            style={{
+              background: 'transparent', border: 'none', outline: 'none',
+              fontFamily: 'monospace', fontSize: '14px', color: colors.text,
+              width: '100%', padding: 0, margin: 0, caretColor: colors.text,
+            }}
+          />
+        </div>
+        <div ref={bottomRef} />
       </div>
-      <div ref={bottomRef} />
     </div>
   );
 };
